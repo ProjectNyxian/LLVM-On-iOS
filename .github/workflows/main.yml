@@ -2,7 +2,7 @@ name: Build LLVM XCFrameworks for Release
 on: [push]
 jobs:
   prepare-build-tools:
-    runs-on: macos-11
+    runs-on: macos-12
     if: ${{ false }}
     steps:
       - uses: actions/checkout@v3
