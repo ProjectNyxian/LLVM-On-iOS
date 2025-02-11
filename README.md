@@ -1,6 +1,6 @@
 # LLVM on iOS
 
-The goal of this project is to illustrate how to use LLVM + Clang to provide an iOS app with some scripting capability.
+The goal of this project is to illustrate how to use LLVM + Clang to provide an iOS app with some scripting capability. 
 
 ![Edit the program screenshot](Screenshots/Screenshot1.png)
 ![Interpret the program screenshot](Screenshots/Screenshot2.png)
