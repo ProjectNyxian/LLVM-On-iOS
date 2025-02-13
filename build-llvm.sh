@@ -99,9 +99,9 @@ build_libffi() {
 get_llvm_src() {
     #git clone --single-branch --branch release/14.x https://github.com/llvm/llvm-project.git
 
-    curl -OL https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/llvm-project-18.1.8.src.tar.xz
-    tar xzf llvm-project-19.1.7.src.tar.xz
-    mv llvm-project-19.1.7.src llvm-project
+    curl -OL https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.6/llvm-project-19.1.6.src.tar.xz
+    tar xzf llvm-project-19.1.6.src.tar.xz
+    mv llvm-project-19.1.6.src llvm-project
 }
 
 ### Prepare the LLVM built for usage in Xcode
