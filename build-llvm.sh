@@ -155,7 +155,7 @@ build_llvm() {
     # https://opensource.com/article/18/5/you-dont-know-bash-intro-bash-arrays
     # ;lld;libcxx;libcxxabi
     local llvmCmakeArgs=(-G "Ninja" \
-        -DLLVM_ENABLE_PROJECTS="clang" \
+        -DLLVM_ENABLE_PROJECTS="clang;lld" \
         -DLLVM_TARGETS_TO_BUILD="AArch64;X86" \
         -DLLVM_BUILD_TOOLS=OFF \
         -DCLANG_BUILD_TOOLS=OFF \
