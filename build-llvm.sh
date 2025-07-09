@@ -177,7 +177,9 @@ build_llvm() {
 
     case $targetPlatformArch in
         "iphoneos")
-            llvmCmakeArgs+=(-DLLVM_TARGET_ARCH=$targetArch);;
+            llvmCmakeArgs+=(-DLLVM_TARGET_ARCH=$targetArch \
+                   -DCMAKE_C_FLAGS="-target $targetArch-apple-ios14.1" \
+                   -DCMAKE_CXX_FLAGS="-target $targetArch-apple-ios14.1");;
 
         "iphonesimulator"|"iphonesimulator-arm64")
             llvmCmakeArgs+=(-DCMAKE_OSX_SYSROOT=$(xcodebuild -version -sdk iphonesimulator Path));;
