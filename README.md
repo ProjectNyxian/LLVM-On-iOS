@@ -1,4 +1,4 @@
-# LLVM on iOS
+# LLVM on iOS (for Nyxian)
 
 The goal of this project is to illustrate how to use LLVM + Clang to provide an iOS app with some scripting capability. 
 
