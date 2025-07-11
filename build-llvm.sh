@@ -155,8 +155,10 @@ build_llvm() {
     # https://opensource.com/article/18/5/you-dont-know-bash-intro-bash-arrays
     # ;lld;libcxx;libcxxabi
     local llvmCmakeArgs=(-G "Ninja" \
-        -DLLVM_ENABLE_PROJECTS="clang;lld" \
+        -DLLVM_ENABLE_PROJECTS="clang;lld;libclang" \
         -DLLVM_TARGETS_TO_BUILD="AArch64" \
+        -DLLVM_TARGET_ARCH=AArch64 \
+        -DLLVM_DEFAULT_TARGET_TRIPLE=arm64-apple-ios \
         -DLLVM_BUILD_TOOLS=OFF \
         -DCLANG_BUILD_TOOLS=OFF \
         -DBUILD_SHARED_LIBS=OFF \
