@@ -156,7 +156,7 @@ build_llvm() {
     # ;lld;libcxx;libcxxabi
     local llvmCmakeArgs=(-G "Ninja" \
         -DLLVM_ENABLE_PROJECTS="clang;lld" \
-        -DLLVM_TARGETS_TO_BUILD="AArch64;X86" \
+        -DLLVM_TARGETS_TO_BUILD="AArch64" \
         -DLLVM_BUILD_TOOLS=OFF \
         -DCLANG_BUILD_TOOLS=OFF \
         -DBUILD_SHARED_LIBS=OFF \
