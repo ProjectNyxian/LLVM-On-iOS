@@ -159,8 +159,8 @@ build_llvm() {
         -DLLVM_TARGETS_TO_BUILD="AArch64" \
         -DLLVM_TARGET_ARCH=AArch64 \
         -DLLVM_DEFAULT_TARGET_TRIPLE=arm64-apple-ios \
-        -DLLVM_BUILD_TOOLS=ON \
-        -DCLANG_BUILD_TOOLS=ON \
+        -DLLVM_BUILD_TOOLS=OFF \
+        -DCLANG_BUILD_TOOLS=OFF \
         -DBUILD_SHARED_LIBS=OFF \
         -DLLVM_ENABLE_ZLIB=OFF \
         -DLLVM_ENABLE_ZSTD=OFF \
