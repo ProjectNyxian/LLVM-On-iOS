@@ -175,7 +175,11 @@ build_llvm() {
         -DFFI_LIBRARY_DIR=$libffiInstallDir \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=$llvmInstallDir \
-        -DCMAKE_TOOLCHAIN_FILE=../llvm/cmake/platforms/iOS.cmake)
+        -DCMAKE_TOOLCHAIN_FILE=../llvm/cmake/platforms/iOS.cmake) \
+        -DLLVM_ENABLE_LIBXML2=OFF \
+        -DCLANG_ENABLE_STATIC_ANALYZER=OFF \
+        -DCLANG_ENABLE_ARCMT=OFF \
+        -DCLANG_TABLEGEN_TARGETS="ARM;AArch64"
 
     case $targetPlatformArch in
         "iphoneos")
