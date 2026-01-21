@@ -76,7 +76,7 @@ jobs:
           path: libclang.tar.xz
 
       - name: Create XCFramework for M1 Macs
-        run: source build-llvm.sh && rm -rf LLVM.xcframework && create_xcframework iphoneos iphonesimulator-arm64 maccatalyst-arm64
+        run: source build-llvm.sh && rm -rf LLVM.xcframework && create_xcframework iphoneos
       - run: tar -cJf LLVM_M1.xcframework.tar.xz LLVM.xcframework
       - uses: actions/upload-artifact@v4
         with:
