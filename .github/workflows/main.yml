@@ -21,7 +21,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        platformArch: [iphoneos, iphonesimulator-arm64, maccatalyst-arm64]
+        platformArch: [iphoneos]
     steps:
       - uses: actions/checkout@v3
       - name: Build libffi for ${{ matrix.platformArch }}
@@ -37,7 +37,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        platformArch: [iphoneos, iphonesimulator-arm64, maccatalyst-arm64]
+        platformArch: [iphoneos]
     timeout-minutes: 1200
     steps:
       - uses: actions/checkout@v3
