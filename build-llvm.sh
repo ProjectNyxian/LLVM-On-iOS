@@ -162,32 +162,34 @@ build_llvm() {
 
     # https://opensource.com/article/18/5/you-dont-know-bash-intro-bash-arrays
     # ;lld;libcxx;libcxxabi
-    local llvmCmakeArgs=(-G "Ninja" \
-        -DLLVM_ENABLE_PROJECTS="clang;lld;dsymutil" \
-        -DLLVM_TARGETS_TO_BUILD="AArch64" \
-        -DLLVM_TARGET_ARCH=AArch64 \
-        -DLLVM_DEFAULT_TARGET_TRIPLE=arm64-apple-ios \
-        -DLLVM_BUILD_TOOLS=OFF \
-        -DCLANG_BUILD_TOOLS=OFF \
-        -DBUILD_SHARED_LIBS=OFF \
-        -DLLVM_ENABLE_ZLIB=OFF \
-        -DLLVM_ENABLE_ZSTD=OFF \
-        -DLLVM_ENABLE_THREADS=ON \
-        -DLLVM_ENABLE_UNWIND_TABLES=OFF \
-        -DLLVM_ENABLE_EH=OFF \
-        -DLLVM_ENABLE_RTTI=ON \
-        -DLLVM_ENABLE_TERMINFO=OFF \
-        -DLLVM_ENABLE_FFI=ON \
-        -DLLVM_DISABLE_ASSEMBLY_FILES=ON \
-        -DFFI_INCLUDE_DIR=$libffiInstallDir/include/ffi \
-        -DFFI_LIBRARY_DIR=$libffiInstallDir \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=$llvmInstallDir \
-        -DCMAKE_TOOLCHAIN_FILE=../llvm/cmake/platforms/iOS.cmake) \
-        -DLLVM_ENABLE_LIBXML2=OFF \
-        -DCLANG_ENABLE_STATIC_ANALYZER=OFF \
-        -DCLANG_ENABLE_ARCMT=OFF \
+    local llvmCmakeArgs=(
+        -G "Ninja"
+        -DLLVM_ENABLE_PROJECTS="clang;lld;dsymutil"
+        -DLLVM_TARGETS_TO_BUILD="AArch64"
+        -DLLVM_TARGET_ARCH=AArch64
+        -DLLVM_DEFAULT_TARGET_TRIPLE=arm64-apple-ios
+        -DLLVM_BUILD_TOOLS=OFF
+        -DCLANG_BUILD_TOOLS=OFF
+        -DBUILD_SHARED_LIBS=OFF
+        -DLLVM_ENABLE_ZLIB=OFF
+        -DLLVM_ENABLE_ZSTD=OFF
+        -DLLVM_ENABLE_THREADS=ON
+        -DLLVM_ENABLE_UNWIND_TABLES=OFF
+        -DLLVM_ENABLE_EH=OFF
+        -DLLVM_ENABLE_RTTI=ON
+        -DLLVM_ENABLE_TERMINFO=OFF
+        -DLLVM_ENABLE_FFI=ON
+        -DLLVM_DISABLE_ASSEMBLY_FILES=ON
+        -DFFI_INCLUDE_DIR="$libffiInstallDir/include/ffi"
+        -DFFI_LIBRARY_DIR="$libffiInstallDir"
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX="$llvmInstallDir"
+        -DCMAKE_TOOLCHAIN_FILE=../llvm/cmake/platforms/iOS.cmake
+        -DLLVM_ENABLE_LIBXML2=OFF
+        -DCLANG_ENABLE_STATIC_ANALYZER=OFF
+        -DCLANG_ENABLE_ARCMT=OFF
         -DCLANG_TABLEGEN_TARGETS="ARM;AArch64"
+    )
 
     case $targetPlatformArch in
         "iphoneos")
