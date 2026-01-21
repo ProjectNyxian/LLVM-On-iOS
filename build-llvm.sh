@@ -73,6 +73,9 @@ build_libffi() {
     # Getting the new and better python script
     wget https://raw.githubusercontent.com/libffi/libffi/refs/heads/master/generate-darwin-source-and-headers.py
 
+    # Fixup execution permitives
+    chmod +x generate-darwin-source-and-headers.py
+
     # Do generate!
     ./generate-darwin-source-and-headers.py --only-ios
 
