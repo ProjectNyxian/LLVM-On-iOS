@@ -51,13 +51,12 @@ build_libffi() {
     echo "Build libffi for $targetPlatformArch"
 
     cd $REPO_ROOT
-    local libffiReleaseSrcArchiveUrl=https://github.com/libffi/libffi/archive/refs/tags/v3.4.4.tar.gz
-    local libffiReleaseUrl=https://github.com/libffi/libffi/releases/download/v3.4.4/libffi-3.4.4.tar.gz
+    # local libffiReleaseSrcArchiveUrl=https://github.com/libffi/libffi/archive/refs/tags/v3.5.2.tar.gz
+    # local libffiReleaseUrl=https://github.com/libffi/libffi/releases/download/v3.5.2/libffi-3.5.2.tar.gz
     # test -d libffi || git clone https://github.com/libffi/libffi.git
     # curl -L -o libffi.tar.gz $libffiReleaseSrcArchive
-    curl -L -o libffi.tar.gz $libffiReleaseUrl
-    tar xzf libffi.tar.gz
-    mv libffi-3.4.4 libffi
+    #curl -L -o libffi.tar.gz $libffiReleaseUrl
+    tar xzf libffi.tar
     cd libffi
 
     # Imitate libffi continuous integration .ci/build.sh script
@@ -67,54 +66,15 @@ build_libffi() {
     # or when we build on the source repo.
     # ./autogen.sh
 
-    # Removing that garbage
-    rm generate-darwin-source-and-headers.py
-
     # Getting the new and better python script
     cp $REPO_ROOT/fix.py generate-darwin-source-and-headers.py
     chmod +x generate-darwin-source-and-headers.py
 
     # Fixup execution permitives
-    chmod +x generate-darwin-source-and-headers.py
+    # chmod +x generate-darwin-source-and-headers.py
 
     # Do generate!
     ./generate-darwin-source-and-headers.py --only-ios
-
-    # Creating stubs so it shuts up and stops crying
-    mkdir -p darwin_ios/src/arm
-    mkdir -p darwin_ios/src/x86
-
-    # armv7 and x86 stubs
-    cat > darwin_ios/src/arm/sysv_armv7.S << 'EOF'
-#ifdef __armv7__
-/* armv7 not supported */
-#endif
-EOF
-    
-    cat > darwin_ios/src/arm/ffi_armv7.c << 'EOF'
-/* armv7 not supported - stub file */
-EOF
-    
-    # Create empty x86_64 files (with _x86_64 suffix)
-    cat > darwin_ios/src/x86/unix64_x86_64.S << 'EOF'
-#ifdef __x86_64__
-/* x86_64 not supported */
-#endif
-EOF
-
-    cat > darwin_ios/src/x86/ffi64_x86_64.c << 'EOF'
-/* x86_64 not supported - stub file */
-EOF
-
-    cat > darwin_ios/src/x86/ffiw64_x86_64.c << 'EOF'
-/* x86_64 not supported - stub file */
-EOF
-
-    cat > darwin_ios/src/x86/win64_x86_64.S << 'EOF'
-#ifdef __x86_64__
-/* x86_64 not supported */
-#endif
-EOF
 
     case $targetPlatformArch in
         "iphoneos")

@@ -1,41 +1,114 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import subprocess
 import os
 import errno
 import collections
 import glob
+import argparse
 
 
 class Platform(object):
     pass
 
 
+class x86_64_platform(Platform):
+    arch = 'x86_64'
+
+    prefix = "#ifdef __x86_64__\n\n"
+    suffix = "\n\n#endif"
+    src_dir = 'x86'
+    src_files = ['unix64.S', 'ffi64.c', 'ffiw64.c', 'win64.S', 'internal64.h', 'asmnames.h']
+
+
 class arm64_platform(Platform):
     arch = 'arm64'
+
     prefix = "#ifdef __arm64__\n\n"
     suffix = "\n\n#endif"
     src_dir = 'aarch64'
     src_files = ['sysv.S', 'ffi.c', 'internal.h']
 
 
-class ios_simulator_arm64_platform(arm64_platform):
-    target = 'aarch64-apple-darwin'
+class ios_simulator_x86_64_platform(x86_64_platform):
+    target = 'x86_64-apple-ios-simulator'
     directory = 'darwin_ios'
     sdk = 'iphonesimulator'
-    version_min = '-miphoneos-version-min=12.0'
+    version_min = '-miphoneos-version-min=7.0'
 
+
+class ios_simulator_arm64_platform(arm64_platform):
+    target = 'arm64-apple-ios-simulator'
+    directory = 'darwin_ios'
+    sdk = 'iphonesimulator'
+    version_min = '-miphoneos-version-min=7.0'
 
 class ios_device_arm64_platform(arm64_platform):
-    target = 'aarch64-apple-darwin'
+    target = 'arm64-apple-ios'
     directory = 'darwin_ios'
     sdk = 'iphoneos'
-    version_min = '-miphoneos-version-min=12.0'
+    version_min = '-miphoneos-version-min=7.0'
+
+
+class desktop_x86_64_platform(x86_64_platform):
+    target = 'x86_64-apple-macos'
+    directory = 'darwin_osx'
+    sdk = 'macosx'
+    version_min = '-mmacosx-version-min=10.6'
+
+
+class desktop_arm64_platform(arm64_platform):
+    target = 'arm64-apple-macos'
+    directory = 'darwin_osx'
+    sdk = 'macosx'
+    version_min = '-mmacosx-version-min=11.0'
+
+
+class tvos_simulator_x86_64_platform(x86_64_platform):
+    target = 'x86_64-apple-tvos-simulator'
+    directory = 'darwin_tvos'
+    sdk = 'appletvsimulator'
+    version_min = '-mtvos-version-min=9.0'
+
+
+class tvos_simulator_arm64_platform(arm64_platform):
+    target = 'arm64-apple-tvos-simulator'
+    directory = 'darwin_tvos'
+    sdk = 'appletvsimulator'
+    version_min = '-mtvos-version-min=9.0'
+
+
+class tvos_device_arm64_platform(arm64_platform):
+    target = 'arm64-apple-tvos'
+    directory = 'darwin_tvos'
+    sdk = 'appletvos'
+    version_min = '-mtvos-version-min=9.0'
+
+
+class watchos_simulator_x86_64_platform(x86_64_platform):
+    target = 'x86_64-apple-watchos-simulator'
+    directory = 'darwin_watchos'
+    sdk = 'watchsimulator'
+    version_min = '-mwatchos-version-min=4.0'
+
+
+class watchos_simulator_arm64_platform(arm64_platform):
+    target = 'arm64-apple-watchos-simulator'
+    directory = 'darwin_watchos'
+    sdk = 'watchsimulator'
+    version_min = '-mwatchos-version-min=4.0'
+
+class watchos_device_arm64_32_platform(arm64_platform):
+    target = 'arm64_32-apple-watchos'
+    directory = 'darwin_watchos'
+    sdk = 'watchos'
+    arch = 'arm64_32'
+    version_min = '-mwatchos-version-min=4.0'
 
 
 def mkdir_p(path):
     try:
         os.makedirs(path)
-    except OSError as exc:
+    except OSError as exc:  # Python >2.5
         if exc.errno != errno.EEXIST:
             raise
 
@@ -55,14 +128,15 @@ def move_file(src_dir, dst_dir, filename, file_suffix=None, prefix='', suffix=''
         with open(os.path.join(dst_dir, out_filename), 'w') as out_file:
             if prefix:
                 out_file.write(prefix)
+
             out_file.write(in_file.read())
+
             if suffix:
                 out_file.write(suffix)
 
 
 def list_files(src_dir, pattern=None, filelist=None):
-    if pattern:
-        filelist = glob.iglob(os.path.join(src_dir, pattern))
+    if pattern: filelist = glob.iglob(os.path.join(src_dir, pattern))
     for file in filelist:
         yield os.path.basename(file)
 
@@ -80,63 +154,84 @@ def copy_src_platform_files(platform):
 
 def build_target(platform, platform_headers):
     def xcrun_cmd(cmd):
-        return 'xcrun -sdk %s %s' % (platform.sdk, cmd)
+        return 'xcrun -sdk %s %s -target %s' % (platform.sdk, cmd, platform.target)
 
-    tag = '%s-%s' % (platform.sdk, platform.arch)
+    tag='%s-%s' % (platform.sdk, platform.arch)
     build_dir = 'build_%s' % tag
     mkdir_p(build_dir)
-    env = dict(
-        CC=xcrun_cmd('clang'),
-        LD=xcrun_cmd('ld'),
-        CFLAGS='%s -arch arm64' % (platform.version_min)
-    )
+    env = dict(CC=xcrun_cmd('clang'),
+               LD=xcrun_cmd('ld'),
+               CFLAGS='%s' % (platform.version_min))
     working_dir = os.getcwd()
     try:
         os.chdir(build_dir)
         subprocess.check_call(
-            ["../configure", "--host=aarch64-apple-darwin"],
+            [
+                "../configure",
+                f"--host={platform.target}",
+            ] + (
+                [] if platform.sdk == "macosx" else [f"--build={os.uname().machine}-apple-darwin"]
+            ),
             env=env
         )
     finally:
         os.chdir(working_dir)
 
     for src_dir in [build_dir, os.path.join(build_dir, 'include')]:
-        copy_files(
-            src_dir,
-            os.path.join(platform.directory, 'include'),
-            pattern='*.h',
-            file_suffix=platform.arch,
-            prefix=platform.prefix,
-            suffix=platform.suffix
-        )
+        copy_files(src_dir,
+                   os.path.join(platform.directory, 'include'),
+                   pattern='*.h',
+                   file_suffix=platform.arch,
+                   prefix=platform.prefix,
+                   suffix=platform.suffix)
 
         for filename in list_files(src_dir, pattern='*.h'):
             platform_headers[filename].add((platform.prefix, platform.arch, platform.suffix))
 
 
-def generate_source_and_headers():
-    print("Generating source and headers for ARM64 iOS only...")
-    
-    # Copy common files
+def generate_source_and_headers(
+    generate_osx=True,
+    generate_ios=True,
+    generate_tvos=True,
+    generate_watchos=True,
+):
     copy_files('src', 'darwin_common/src', pattern='*.c')
     copy_files('include', 'darwin_common/include', pattern='*.h')
 
-    # Copy platform-specific source files (ARM64 only)
-    print("Copying platform source files...")
-    copy_src_platform_files(ios_simulator_arm64_platform)
-    copy_src_platform_files(ios_device_arm64_platform)
+    if generate_ios:
+        copy_src_platform_files(ios_simulator_x86_64_platform)
+        copy_src_platform_files(ios_simulator_arm64_platform)
+        copy_src_platform_files(ios_device_arm64_platform)
+    if generate_osx:
+        copy_src_platform_files(desktop_x86_64_platform)
+        copy_src_platform_files(desktop_arm64_platform)
+    if generate_tvos:
+        copy_src_platform_files(tvos_simulator_x86_64_platform)
+        copy_src_platform_files(tvos_simulator_arm64_platform)
+        copy_src_platform_files(tvos_device_arm64_platform)
+    if generate_watchos:
+        copy_src_platform_files(watchos_simulator_x86_64_platform)
+        copy_src_platform_files(watchos_simulator_arm64_platform)
+        copy_src_platform_files(watchos_device_arm64_32_platform)
 
     platform_headers = collections.defaultdict(set)
 
-    # Build targets (ARM64 only)
-    print("Building iOS Simulator ARM64...")
-    build_target(ios_simulator_arm64_platform, platform_headers)
-    
-    print("Building iOS Device ARM64...")
-    build_target(ios_device_arm64_platform, platform_headers)
+    if generate_ios:
+        build_target(ios_simulator_x86_64_platform, platform_headers)
+        build_target(ios_simulator_arm64_platform, platform_headers)
+        build_target(ios_device_arm64_platform, platform_headers)
+    if generate_osx:
+        build_target(desktop_x86_64_platform, platform_headers)
+        build_target(desktop_arm64_platform, platform_headers)
+    if generate_tvos:
+        build_target(tvos_simulator_x86_64_platform, platform_headers)
+        build_target(tvos_simulator_arm64_platform, platform_headers)
+        build_target(tvos_device_arm64_platform, platform_headers)
+    if generate_watchos:
+        build_target(watchos_simulator_x86_64_platform, platform_headers)
+        build_target(watchos_simulator_arm64_platform, platform_headers)
+        build_target(watchos_device_arm64_32_platform, platform_headers)
 
-    # Generate combined headers
-    print("Generating combined headers...")
     mkdir_p('darwin_common/include')
     for header_name, tag_tuples in platform_headers.items():
         basename, suffix = os.path.splitext(header_name)
@@ -144,8 +239,17 @@ def generate_source_and_headers():
             for tag_tuple in tag_tuples:
                 header.write('%s#include <%s_%s%s>\n%s\n' % (tag_tuple[0], basename, tag_tuple[1], suffix, tag_tuple[2]))
 
-    print("Done! Generated ARM64-only iOS libffi headers and sources.")
-
-
 if __name__ == '__main__':
-    generate_source_and_headers()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--only-ios', action='store_true', default=False)
+    parser.add_argument('--only-osx', action='store_true', default=False)
+    parser.add_argument('--only-tvos', action='store_true', default=False)
+    parser.add_argument('--only-watchos', action='store_true', default=False)
+    args = parser.parse_args()
+
+    generate_source_and_headers(
+        generate_osx=not args.only_ios and not args.only_tvos and not args.only_watchos,
+        generate_ios=not args.only_osx and not args.only_tvos and not args.only_watchos,
+        generate_tvos=not args.only_ios and not args.only_osx and not args.only_watchos,
+        generate_watchos=not args.only_ios and not args.only_osx and not args.only_tvos,
+    )
