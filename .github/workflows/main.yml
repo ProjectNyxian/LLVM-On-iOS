@@ -2,7 +2,7 @@ name: Build LLVM XCFrameworks for Release
 on: [push]
 jobs:
   prepare-build-tools:
-    runs-on: macos-13
+    runs-on: macos-latest
     if: ${{ false }}
     steps:
       - uses: actions/checkout@v3
@@ -21,7 +21,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        platformArch: [iphoneos, iphonesimulator, iphonesimulator-arm64, maccatalyst, maccatalyst-arm64]
+        platformArch: [iphoneos, iphonesimulator-arm64, maccatalyst-arm64]
     steps:
       - uses: actions/checkout@v3
       - name: Build libffi for ${{ matrix.platformArch }}
@@ -37,7 +37,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        platformArch: [iphoneos, iphonesimulator, iphonesimulator-arm64, maccatalyst, maccatalyst-arm64]
+        platformArch: [iphoneos, iphonesimulator-arm64, maccatalyst-arm64]
     timeout-minutes: 1200
     steps:
       - uses: actions/checkout@v3
