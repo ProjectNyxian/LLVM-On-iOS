@@ -84,15 +84,37 @@ build_libffi() {
     mkdir -p darwin_ios/src/arm
     mkdir -p darwin_ios/src/x86
 
-    # armv7 stubs
-    touch darwin_ios/src/arm/sysv_armv7.S
-    touch darwin_ios/src/arm/ffi_armv7.c
+    # armv7 and x86 stubs
+    cat > darwin_ios/src/arm/sysv_armv7.S << 'EOF'
+#ifdef __armv7__
+/* armv7 not supported */
+#endif
+EOF
+    
+    cat > darwin_ios/src/arm/ffi_armv7.c << 'EOF'
+/* armv7 not supported - stub file */
+EOF
+    
+    # Create empty x86_64 files (with _x86_64 suffix)
+    cat > darwin_ios/src/x86/unix64_x86_64.S << 'EOF'
+#ifdef __x86_64__
+/* x86_64 not supported */
+#endif
+EOF
 
-    # x86 stubs
-    touch darwin_ios/src/x86/unix64.S
-    touch darwin_ios/src/x86/ffi64.c
-    touch darwin_ios/src/x86/ffiw64.c
-    touch darwin_ios/src/x86/win64.S
+    cat > darwin_ios/src/x86/ffi64_x86_64.c << 'EOF'
+/* x86_64 not supported - stub file */
+EOF
+
+    cat > darwin_ios/src/x86/ffiw64_x86_64.c << 'EOF'
+/* x86_64 not supported - stub file */
+EOF
+
+    cat > darwin_ios/src/x86/win64_x86_64.S << 'EOF'
+#ifdef __x86_64__
+/* x86_64 not supported */
+#endif
+EOF
 
     case $targetPlatformArch in
         "iphoneos")
