@@ -70,6 +70,11 @@ build_libffi() {
     # Attempt to fix i386 support end
     sed -i.bak '/i386/d' generate-darwin-source-and-headers.py
     sed -i.bak '/ios_simulator_i386/d' generate-darwin-source-and-headers.py
+    sed -i.bak '/armv7/d' generate-darwin-source-and-headers.py
+    sed -i.bak '/ios_simulator_i386_platform/d' generate-darwin-source-and-headers.py
+    sed -i.bak '/ios_device_armv7_platform/d' generate-darwin-source-and-headers.py
+    sed -i.bak '/build_target(ios_simulator_i386_platform/d' generate-darwin-source-and-headers.py
+    sed -i.bak '/build_target(ios_device_armv7_platform/d' generate-darwin-source-and-headers.py
     
     ./generate-darwin-source-and-headers.py --only-ios
 
