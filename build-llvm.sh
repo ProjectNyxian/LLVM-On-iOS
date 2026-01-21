@@ -80,6 +80,20 @@ build_libffi() {
     # Do generate!
     ./generate-darwin-source-and-headers.py --only-ios
 
+    # Creating stubs so it shuts up and stops crying
+    mkdir -p darwin_ios/src/arm
+    mkdir -p darwin_ios/src/x86
+
+    # armv7 stubs
+    touch darwin_ios/src/arm/sysv_armv7.S
+    touch darwin_ios/src/arm/ffi_armv7.c
+
+    # x86 stubs
+    touch darwin_ios/src/x86/unix64.S
+    touch darwin_ios/src/x86/ffi64.c
+    touch darwin_ios/src/x86/ffiw64.c
+    touch darwin_ios/src/x86/win64.S
+
     case $targetPlatformArch in
         "iphoneos")
             xcodeSdkArgs=(-sdk $targetBasePlatform);;
