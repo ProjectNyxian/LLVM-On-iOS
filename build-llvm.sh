@@ -66,6 +66,11 @@ build_libffi() {
     # It is only needed when using the source archive $libffiReleaseSrcArchiveUrl (zipped repo at certain commit)
     # or when we build on the source repo.
     # ./autogen.sh
+
+    # Attempt to fix i386 support end
+    sed -i.bak '/i386/d' generate-darwin-source-and-headers.py
+    sed -i.bak '/ios_simulator_i386/d' generate-darwin-source-and-headers.py
+    
     ./generate-darwin-source-and-headers.py --only-ios
 
     case $targetPlatformArch in
