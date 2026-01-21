@@ -164,7 +164,7 @@ build_llvm() {
     # ;lld;libcxx;libcxxabi
     local llvmCmakeArgs=(
         -G "Ninja"
-        -DLLVM_ENABLE_PROJECTS="clang;lld;dsymutil"
+        -DLLVM_ENABLE_PROJECTS="clang;lld"
         -DLLVM_TARGETS_TO_BUILD="AArch64"
         -DLLVM_TARGET_ARCH=AArch64
         -DLLVM_DEFAULT_TARGET_TRIPLE=arm64-apple-ios
