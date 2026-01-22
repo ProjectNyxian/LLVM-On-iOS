@@ -189,6 +189,11 @@ build_llvm() {
         -DCLANG_ENABLE_STATIC_ANALYZER=OFF
         -DCLANG_ENABLE_ARCMT=OFF
         -DCLANG_TABLEGEN_TARGETS="AArch64"
+
+        # Attempt to strip down support of other operating systems
+        -DLLVM_INCLUDE_COFF=OFF
+        -DLLVM_INCLUDE_ELF=OFF
+        -DLLVM_INCLUDE_WASM=OFF
     )
 
     case $targetPlatformArch in
