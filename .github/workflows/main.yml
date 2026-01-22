@@ -29,8 +29,9 @@ jobs:
     needs: build-llvm
     runs-on: macos-latest
     steps:
+      - uses: actions/checkout@v3
       - name: Create XCFramework
-      - run: tar -cJf LLVM.xcframework.tar.xz LLVM.xcframework
+        run: tar -cJf LLVM.xcframework.tar.xz LLVM.xcframework
       - uses: actions/upload-artifact@v4
         with:
           name: LLVM
