@@ -200,7 +200,7 @@ build_llvm() {
         -DLLVM_ENABLE_DIA_SDK=OFF                           # Fuck off microsoft
         -DLLVM_ENABLE_DOXYGEN=OFF                           # Nyxian aint for script kiddos
         -DLLVM_ENABLE_DOXYGEN_QT_HELP=OFF                   # Didnt you listen what I said
-        -DLLVM_ENABLE_EH=ON                                 # We need to be reported about exceptions
+        -DLLVM_ENABLE_EH=OFF                                # We need to be reported about exceptions
         -DLLVM_ENABLE_EXPENSIVE_CHECKS=OFF                  # Do you know how much memory this costs?!
         -DLLVM_ENABLE_FFI=ON                                # Needed for the C++ lovers (Dont wanna know these people, they scare me)
         -DLLVM_ENABLE_HTTPLIB=OFF                           # Useless for nyxian
