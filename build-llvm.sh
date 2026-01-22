@@ -176,7 +176,7 @@ build_llvm() {
         -DLLVM_ENABLE_THREADS=ON
         -DLLVM_ENABLE_UNWIND_TABLES=OFF
         -DLLVM_ENABLE_EH=OFF
-        -DLLVM_ENABLE_RTTI=ON
+        -DLLVM_ENABLE_RTTI=OFF                  # Might be needed later, but can be off for now
         -DLLVM_ENABLE_TERMINFO=OFF
         -DLLVM_ENABLE_FFI=ON
         -DLLVM_DISABLE_ASSEMBLY_FILES=ON
