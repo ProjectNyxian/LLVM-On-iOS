@@ -245,7 +245,6 @@ build_llvm() {
         -DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=OFF          # Correctness on top!
         -DLLVM_UNREACHABLE_OPTIMIZE=ON                      # We need this
         -DLLVM_USE_INTEL_JITEVENTS=OFF                      # Dont need those overheating chips
-        -DLLVM_USE_LINKER="lld"                             # I dont care
         -DLLVM_USE_OPROFILE=OFF                             # Dont need JIT
         -DLLVM_USE_PERF=OFF                                 # Dont need JIT
         -DLLVM_USE_RELATIVE_PATHS_IN_FILES=OFF              # Not needed
