@@ -207,7 +207,6 @@ build_llvm() {
         -DLLVM_ENABLE_IDE=ON                                # YEAH LLVM pls
         -DLLVM_ENABLE_LIBCXX=OFF                            # Useless for nyxian
         -DLLVM_ENABLE_LIBPFM=OFF                            # Is linux only
-        -DLLVM_ENABLE_LLD=ON                                # Useless, but i dont care
         -DLLVM_ENABLE_LLVM_LIBC=OFF                         # Useless for nyxian
         -DLLVM_ENABLE_LTO=Thin                              # Is smaller
         -DLLVM_ENABLE_MODULES=OFF                           # fuck off
