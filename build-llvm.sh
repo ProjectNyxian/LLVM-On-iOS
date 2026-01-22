@@ -163,9 +163,24 @@ build_llvm() {
     # https://opensource.com/article/18/5/you-dont-know-bash-intro-bash-arrays
     # ;lld;libcxx;libcxxabi
     local llvmCmakeArgs=(
-        # Main flags
         -G "Ninja"
         -DLLVM_ENABLE_PROJECTS="clang;lld"
+        -DLLVM_TARGETS_TO_BUILD="AArch64"
+        -DLLVM_TARGET_ARCH=AArch64
+        -DLLVM_DEFAULT_TARGET_TRIPLE=arm64-apple-ios
+        -DLLVM_BUILD_TOOLS=OFF
+        -DCLANG_BUILD_TOOLS=OFF
+        -DBUILD_SHARED_LIBS=OFF
+        -DLLVM_ENABLE_ZLIB=OFF
+        -DLLVM_ENABLE_ZSTD=OFF
+        -DLLVM_ENABLE_THREADS=ON
+        -DLLVM_ENABLE_UNWIND_TABLES=OFF
+        -DLLVM_ENABLE_EH=OFF
+        -DLLVM_ENABLE_RTTI=ON
+        -DLLVM_ENABLE_RTTI=OFF                  # Might be needed later, but can be off for now
+        -DLLVM_ENABLE_TERMINFO=OFF
+        -DLLVM_ENABLE_FFI=ON
+        -DLLVM_DISABLE_ASSEMBLY_FILES=ON
         -DFFI_INCLUDE_DIR="$libffiInstallDir/include/ffi"
         -DFFI_LIBRARY_DIR="$libffiInstallDir"
         -DCMAKE_BUILD_TYPE=MinSizeRel
@@ -175,81 +190,6 @@ build_llvm() {
         -DCLANG_ENABLE_STATIC_ANALYZER=OFF
         -DCLANG_ENABLE_ARCMT=OFF
         -DCLANG_TABLEGEN_TARGETS="AArch64"
-
-        # Attempt to strip down support of other operating systems
-        -DLLVM_INCLUDE_COFF=OFF
-        -DLLVM_INCLUDE_ELF=OFF
-        -DLLVM_INCLUDE_WASM=OFF
-
-        # LLVM Related flags
-        -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi"
-        -DLLVM_BUILD_32_BITS=OFF                            # iOS killed armv7 in iOS 11+
-        -DLLVM_BUILD_BENCHMARKS=OFF                         # We dont need any benchmarks
-        -DLLVM_BUILD_DOCS=OFF                               # We dont need any documentations
-        -DLLVM_BUILD_EXAMPLES=OFF                           # We dont need any examples
-        -DLLVM_BUILD_INSTRUMENTED_COVERAGE=OFF              # We dont need that either
-        -DLLVM_BUILD_LLVM_DYLIB=OFF                         # For now off (might need that later tho)
-        -DLLVM_BUILD_TESTS=OFF                              # We dont need any tests
-        -DLLVM_BUILD_TOOLS=OFF                              # We dont need any tools, we utilise LLVM in nyxian customly
-        -DLLVM_CCACHE_BUILD=OFF                             # Execution on iOS is prohibited
-        -DLLVM_CREATE_XCODE_TOOLCHAIN=OFF                   # We dont need any executables, nyxian is compact
-        -DLLVM_DEFAULT_TARGET_TRIPLE="arm64-apple-ios"      # Nyxian runs on iOS so I guess iOS??
-        -DLLVM_DOXYGEN_SVG=OFF                              # We dont need that shit
-        -DLLVM_ENABLE_ASSERTIONS=OFF                        # Dont need assertions
-        -DLLVM_ENABLE_BINDINGS=OFF                          # We only need a compiler and linker
-        -DLLVM_ENABLE_DIA_SDK=OFF                           # Fuck off microsoft
-        -DLLVM_ENABLE_DOXYGEN=OFF                           # Nyxian aint for script kiddos
-        -DLLVM_ENABLE_DOXYGEN_QT_HELP=OFF                   # Didnt you listen what I said
-        -DLLVM_ENABLE_EH=OFF                                # We need to be reported about exceptions
-        -DLLVM_ENABLE_EXPENSIVE_CHECKS=OFF                  # Do you know how much memory this costs?!
-        -DLLVM_ENABLE_FFI=ON                                # Needed for the C++ lovers (Dont wanna know these people, they scare me)
-        -DLLVM_ENABLE_HTTPLIB=OFF                           # Useless for nyxian
-        -DLLVM_ENABLE_IDE=ON                                # YEAH LLVM pls
-        -DLLVM_ENABLE_LIBCXX=OFF                            # Useless for nyxian
-        -DLLVM_ENABLE_LIBPFM=OFF                            # Is linux only
-        -DLLVM_ENABLE_LLVM_LIBC=OFF                         # Useless for nyxian
-        -DLLVM_ENABLE_LTO=Thin                              # Is smaller
-        -DLLVM_ENABLE_MODULES=OFF                           # fuck off
-        -DLLVM_ENABLE_PEDANTIC=ON                           # Everything needs to be correct still
-        -DLLVM_ENABLE_PIC=ON                                # Apple is a fan of that
-        -DLLVM_ENABLE_PROJECTS="clang;lld"                  # As I said, I need a compiler and a linker
-        -DLLVM_ENABLE_RTTI=OFF                              # Might need that but later
-        -DLLVM_ENABLE_RUNTIMES="libc;libcxx;libcxxabi"      # All we need
-        -DLLVM_ENABLE_SPHINX=OFF                            # Are we in egypt??
-        -DLLVM_ENABLE_THREADS=ON                            # We need thread-safe multithreaded building
-        -DLLVM_ENABLE_UNWIND_TABLES=ON                      # We need to make sure everything works correctly
-        -DLLVM_ENABLE_WARNINGS=ON                           # Warn me
-        -DLLVM_ENABLE_WERROR=OFF                            # Dont do that shit
-        -DLLVM_ENABLE_Z3_SOLVER=OFF                         # Not needed
-        -DLLVM_ENABLE_ZLIB=OFF                              # Not needed
-        -DLLVM_ENABLE_ZSTD=OFF                              # Not needed
-        -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=""             # Not needed
-        -DLLVM_EXTERNAL_PROJECTS=""                         # Not needed neither
-        -DLLVM_EXTERNALIZE_DEBUGINFO=OFF                    # FOR DEBUG SUPPORT LATER
-        -DLLVM_ENABLE_EXPORTED_SYMBOLS_IN_EXECUTABLES=OFF   # We dont need that but for the point before this one
-        -DLLVM_FORCE_USE_OLD_TOOLCHAIN=OFF                  # Correctness on top!
-        -DLLVM_INCLUDE_BENCHMARKS=OFF                       # We dont need benchmarks
-        -DLLVM_INCLUDE_EXAMPLES=OFF                         # Dont need any examples
-        -DLLVM_INCLUDE_TESTS=OFF                            # Not needed
-        -DLLVM_INCLUDE_TOOLS=OFF                            # Not needed
-        -DLLVM_INDIVIDUAL_TEST_COVERAGE=OFF                 # Not needed
-        -DLLVM_INSTALL_BINUTILS_SYMLINKS=OFF                # Not needed
-        -DLLVM_INSTALL_CCTOOLS_SYMLINKS=OFF                 # Not needed
-        -DLLVM_INSTALL_UTILS=OFF                            # Not needed
-        -DLLVM_ENABLE_RPMALLOC=OFF                          # Not needed
-        -DLLVM_LINK_LLVM_DYLIB=OFF                          # Not needed for now
-        -DLLVM_OPTIMIZED_TABLEGEN=ON                        # Important
-        -DLLVM_TARGET_ARCH="AArch64"                        # Only iOS arm64
-        -DLLVM_TARGETS_TO_BUILD="AArch64"                   # Only iOS arm64
-        -DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=OFF          # Correctness on top!
-        -DLLVM_UNREACHABLE_OPTIMIZE=ON                      # We need this
-        -DLLVM_USE_INTEL_JITEVENTS=OFF                      # Dont need those overheating chips
-        -DLLVM_USE_OPROFILE=OFF                             # Dont need JIT
-        -DLLVM_USE_PERF=OFF                                 # Dont need JIT
-        -DLLVM_USE_RELATIVE_PATHS_IN_FILES=OFF              # Not needed
-        -DLLVM_USE_RELATIVE_PATHS_IN_DEBUG_INFO=OFF         # Not needed
-        -DLLVM_USE_SANITIZER=""                             # Not needed
-        -DLLVM_USE_SPLIT_DWARF=OFF                          # Not needed
     )
 
     case $targetPlatformArch in
