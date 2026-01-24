@@ -24,9 +24,15 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           make all
-      - name: create framework archive
+      - name: create llvm framework archive
         run: tar -cJf LLVM.xcframework.tar.xz LLVM.xcframework
       - uses: actions/upload-artifact@v4
         with:
           name: LLVM
           path: LLVM.xcframework.tar.xz
+      - name: create clang framework archive
+         run: tar -cJf Clang.xcframework.tar.xz Clang.xcframework
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Clang
+          path: Clang.xcframework.tar.xz

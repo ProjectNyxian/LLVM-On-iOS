@@ -1,12 +1,16 @@
-# Makefile
-
+# Quick configurations
 ROOT := $(PWD)
-LLVM_VER := 19.1.6
+LLVM_VER := 19.1.7
+OS_VER := 14.0
+LLVM_ARCH := AArch64
+APPLE_ARCH := arm64
+
+# Cmake configurations
 LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DLLVM_ENABLE_PROJECTS="clang;lld" \
-					-DLLVM_TARGETS_TO_BUILD="AArch64" \
-					-DLLVM_TARGET_ARCH="AArch64" \
-					-DLLVM_DEFAULT_TARGET_TRIPLE="arm64-apple-ios" \
+					-DLLVM_TARGETS_TO_BUILD="$(LLVM_ARCH)" \
+					-DLLVM_TARGET_ARCH="$(LLVM_ARCH)" \
+					-DLLVM_DEFAULT_TARGET_TRIPLE="$(APPLE_ARCH)-apple-ios" \
 					-DLLVM_BUILD_TOOLS=OFF \
 					-DCLANG_BUILD_TOOLS=OFF \
 					-DBUILD_SHARED_LIBS=OFF \
@@ -27,19 +31,20 @@ LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DLLVM_ENABLE_LIBXML2=OFF \
 					-DCLANG_ENABLE_STATIC_ANALYZER=OFF \
 					-DCLANG_ENABLE_ARCMT=OFF \
-					-DCLANG_TABLEGEN_TARGETS="AArch64" \
+					-DCLANG_TABLEGEN_TARGETS="$(LLVM_ARCH)" \
 					-DLLVM_BUILD_LLVM_DYLIB=ON \
 					-DLLVM_LINK_LLVM_DYLIB=ON \
-					-DLLVM_TARGET_ARCH="arm64" \
-					-DCMAKE_C_FLAGS="-target arm64-apple-ios14.0" \
-					-DCMAKE_CXX_FLAGS="-target arm64-apple-ios14.0" \
-					-DCMAKE_OSX_ARCHITECTURES=arm64
+					-DCMAKE_C_FLAGS="-target $(APPLE_ARCH)-apple-ios$(OS_VER)" \
+					-DCMAKE_CXX_FLAGS="-target $(APPLE_ARCH)-apple-ios$(OS_VER)" \
+					-DCMAKE_OSX_ARCHITECTURES="$(APPLE_ARCH)"
 
+# Helper functions
 define log_info
 	@echo "\033[32m\033[1m[*] \033[0m\033[32m$(1)\033[0m"
 endef
 
-all: LLVM.xcframework
+# Actual Makefile
+all: LLVM.xcframework Clang.xcframework clean
 
 libffi:
 	$(call log_info,extracting libffi)
@@ -84,12 +89,25 @@ LLVM-iphoneos/llvm.a: LLVM-iphoneos
 		LLVM-iphoneos/lib/liblld*.a
 
 LLVM.xcframework: LLVM-iphoneos/llvm.a
-	 $(call log_info,creating framework out of llvm ($(LLVM_VER)))
-	 tar -cJf libclang.tar.xz LLVM-iphoneos/lib/clang/
-	 xcodebuild -create-xcframework \
-	 	 -library "LLVM-iphoneos/llvm.a" \
-	 	 -headers "LLVM-iphoneos/include" \
-	 	 -output LLVM.xcframework
+	$(call log_info,creating LLVM framework out of llvm ($(LLVM_VER)))
+	mkdir llvm-headers
+	cp -r LLVM-iphoneos/include/* llvm-headers/
+	rm -rf llvm-headers/clang-c
+	xcodebuild -create-xcframework \
+		-library "LLVM-iphoneos/llvm.a" \
+	 	-headers "llvm-headers" \
+	 	-output LLVM.xcframework
+	rm -rf llvm-headers
+
+Clang.xcframework: LLVM-iphoneos/llvm.a
+	$(call log_info,creating Clang framework out of llvm ($(LLVM_VER)))
+	mkdir clang-headers
+	cp -r LLVM-iphoneos/include/clang-c clang-headers/
+	xcodebuild -create-xcframework \
+		-library "LLVM-iphoneos/lib/libclang.dylib" \
+		-headers "clang-headers" \
+		-output Clang.xcframework
+	rm -rf clang-headers
 
 clean:
 	$(call log_info,cleaning up)
@@ -99,4 +117,7 @@ clean:
 	rm -rf LLVM-iphoneos
 	rm -rf Release-iphoneos
 	rm -rf LIBFFI-iphoneos
-	rm -rf libclang*
+	rm -rf *headers
+
+clean-all: clean
+	rm -rf *.xcframework

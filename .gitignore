@@ -20,4 +20,4 @@ llvm-project/
 libffi/
 tools/
 LLVM**.xcframework/
-
+Clang**.xcframework/
