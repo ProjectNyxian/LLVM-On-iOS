@@ -1,5 +1,6 @@
 # Makefile
 
+ROOT := $(PWD)
 LLVM_VER := 19.1.6
 LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DLLVM_ENABLE_PROJECTS="clang;lld" \
@@ -18,17 +19,17 @@ LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DLLVM_ENABLE_TERMINFO=OFF \
 					-DLLVM_ENABLE_FFI=ON \
 					-DLLVM_DISABLE_ASSEMBLY_FILES=ON \
-					-DFFI_INCLUDE_DIR="../../LIBFFI-iphoneos/include/ffi" \
-					-DFFI_LIBRARY_DIR="../../LIBFFI-iphoneos" \
+					-DFFI_INCLUDE_DIR="$(ROOT)/LIBFFI-iphoneos/include/ffi" \
+					-DFFI_LIBRARY_DIR="$(ROOT)/LIBFFI-iphoneos" \
 					-DCMAKE_BUILD_TYPE=MinSizeRel \
-					-DCMAKE_INSTALL_PREFIX="../../LLVM-iphoneos" \
+					-DCMAKE_INSTALL_PREFIX="$(ROOT)/LLVM-iphoneos" \
 					-DCMAKE_TOOLCHAIN_FILE=../llvm/cmake/platforms/iOS.cmake \
 					-DLLVM_ENABLE_LIBXML2=OFF \
 					-DCLANG_ENABLE_STATIC_ANALYZER=OFF \
 					-DCLANG_ENABLE_ARCMT=OFF \
 					-DCLANG_TABLEGEN_TARGETS="AArch64" \
-					-DLLVM_BUILD_LLVM_DYLIB=OFF \
-					-DLLVM_LINK_LLVM_DYLIB=OFF \
+					-DLLVM_BUILD_LLVM_DYLIB=ON \
+					-DLLVM_LINK_LLVM_DYLIB=ON \
 					-DLLVM_TARGET_ARCH="arm64" \
 					-DCMAKE_C_FLAGS="-target arm64-apple-ios14.0" \
 					-DCMAKE_CXX_FLAGS="-target arm64-apple-ios14.0" \
@@ -94,8 +95,7 @@ clean:
 	$(call log_info,cleaning up)
 	rm -rf libffi
 	rm -rf libffi-iphoneos
-	rm -rf llvm-project-19.1.6.src.tar.xz
-	rm -rf llvm-project-19.1.6.src
+	rm -rf llvm*
 	rm -rf LLVM-iphoneos
 	rm -rf Release-iphoneos
 	rm -rf LIBFFI-iphoneos

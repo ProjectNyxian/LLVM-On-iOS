@@ -24,13 +24,7 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           make all
-
-  create-xcframework:
-    needs: build-llvm
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Create XCFramework
+      - name: create framework archive
         run: tar -cJf LLVM.xcframework.tar.xz LLVM.xcframework
       - uses: actions/upload-artifact@v4
         with:
