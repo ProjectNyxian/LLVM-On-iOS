@@ -22,18 +22,15 @@ LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DLLVM_ENABLE_RTTI=ON \
 					-DLLVM_ENABLE_TERMINFO=OFF \
 					-DLLVM_ENABLE_FFI=ON \
-					-DLLVM_DISABLE_ASSEMBLY_FILES=ON \
 					-DFFI_INCLUDE_DIR="$(ROOT)/LIBFFI-iphoneos/include/ffi" \
 					-DFFI_LIBRARY_DIR="$(ROOT)/LIBFFI-iphoneos" \
-					-DCMAKE_BUILD_TYPE=MinSizeRel \
+					-DCMAKE_BUILD_TYPE=Release \
 					-DCMAKE_INSTALL_PREFIX="$(ROOT)/LLVM-iphoneos" \
 					-DCMAKE_TOOLCHAIN_FILE=../llvm/cmake/platforms/iOS.cmake \
 					-DLLVM_ENABLE_LIBXML2=OFF \
 					-DCLANG_ENABLE_STATIC_ANALYZER=OFF \
 					-DCLANG_ENABLE_ARCMT=OFF \
 					-DCLANG_TABLEGEN_TARGETS="$(LLVM_ARCH)" \
-					-DLLVM_BUILD_LLVM_DYLIB=ON \
-					-DLLVM_LINK_LLVM_DYLIB=ON \
 					-DCMAKE_C_FLAGS="-target $(APPLE_ARCH)-apple-ios$(OS_VER)" \
 					-DCMAKE_CXX_FLAGS="-target $(APPLE_ARCH)-apple-ios$(OS_VER)" \
 					-DCMAKE_OSX_ARCHITECTURES="$(APPLE_ARCH)"
@@ -44,7 +41,7 @@ define log_info
 endef
 
 # Actual Makefile
-all: LLVM.xcframework Clang.xcframework clean
+all: LLVM.xcframework Clang.xcframework # clean
 
 libffi:
 	$(call log_info,extracting libffi)
