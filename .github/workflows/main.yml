@@ -31,7 +31,7 @@ jobs:
           name: LLVM
           path: LLVM.xcframework.tar.xz
       - name: create clang framework archive
-         run: tar -cJf Clang.xcframework.tar.xz Clang.xcframework
+        run: tar -cJf Clang.xcframework.tar.xz Clang.xcframework
       - uses: actions/upload-artifact@v4
         with:
           name: Clang
