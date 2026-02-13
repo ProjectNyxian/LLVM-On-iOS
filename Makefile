@@ -1,6 +1,6 @@
 # Quick configurations
 ROOT := $(PWD)
-LLVM_VER := 19.1.7
+LLVM_VER := 21.1.8
 OS_VER := 14.0
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
@@ -33,7 +33,8 @@ LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DCLANG_TABLEGEN_TARGETS="$(LLVM_ARCH)" \
 					-DCMAKE_C_FLAGS="-target $(APPLE_ARCH)-apple-ios$(OS_VER)" \
 					-DCMAKE_CXX_FLAGS="-target $(APPLE_ARCH)-apple-ios$(OS_VER)" \
-					-DCMAKE_OSX_ARCHITECTURES="$(APPLE_ARCH)"
+					-DCMAKE_OSX_ARCHITECTURES="$(APPLE_ARCH)" \
+					-DLLVM_FORCE_VC_REPOSITORY=https://github.com/ProjectNyxian/LLVM-On-iOS
 
 # Helper functions
 define log_info
@@ -41,7 +42,7 @@ define log_info
 endef
 
 # Actual Makefile
-all: LLVM.xcframework Clang.xcframework # clean
+all: LLVM.xcframework Clang.xcframework clean
 
 libffi:
 	$(call log_info,extracting libffi)
@@ -65,15 +66,16 @@ llvm-project-$(LLVM_VER).src: llvm-project-$(LLVM_VER).src.tar.xz
 	$(call log_info,extracting llvm ($(LLVM_VER)))
 	tar xzf llvm-project-$(LLVM_VER).src.tar.xz
 
-LLVM-iphoneos: LIBFFI-iphoneos llvm-project-$(LLVM_VER).src
+llvm-project-$(LLVM_VER).src/build:
 	$(call log_info,preparing llvm ($(LLVM_VER)))
-	rm -rf llvm-project-$(LLVM_VER).src/build
 	mkdir llvm-project-$(LLVM_VER).src/build
 	$(call log_info,configuring llvm ($(LLVM_VER)))
 	cd llvm-project-$(LLVM_VER).src/build; \
-		cmake $(LLVM_CMAKE_FLAGS) ../llvm
+	    cmake $(LLVM_CMAKE_FLAGS) ../llvm
 	$(call log_info,patching configuration of llvm ($(LLVM_VER)))
 	sed -i.bak 's/^HAVE_FFI_CALL:INTERNAL=/HAVE_FFI_CALL:INTERNAL=1/g' llvm-project-$(LLVM_VER).src/build/CMakeCache.txt
+
+LLVM-iphoneos: LIBFFI-iphoneos llvm-project-$(LLVM_VER).src llvm-project-$(LLVM_VER).src/build
 	$(call log_info,building llvm ($(LLVM_VER)))
 	cd llvm-project-$(LLVM_VER).src/build; \
 		cmake --build . --target install
@@ -83,7 +85,9 @@ LLVM-iphoneos/llvm.a: LLVM-iphoneos
 	libtool -static -o LLVM-iphoneos/llvm.a \
 		LLVM-iphoneos/lib/libLLVM*.a \
 		LLVM-iphoneos/lib/libclang*.a \
-		LLVM-iphoneos/lib/liblld*.a
+		LLVM-iphoneos/lib/liblld*.a \
+		LIBFFI-iphoneos/libffi.a
+	install_name_tool -id "@rpath/llvm.dylib" LLVM-iphoneos/llvm.dylib
 
 LLVM.xcframework: LLVM-iphoneos/llvm.a
 	$(call log_info,creating LLVM framework out of llvm ($(LLVM_VER)))
@@ -96,7 +100,7 @@ LLVM.xcframework: LLVM-iphoneos/llvm.a
 	 	-output LLVM.xcframework
 	rm -rf llvm-headers
 
-Clang.xcframework: LLVM-iphoneos/llvm.a
+Clang.xcframework: LLVM-iphoneos
 	$(call log_info,creating Clang framework out of llvm ($(LLVM_VER)))
 	mkdir clang-headers
 	cp -r LLVM-iphoneos/include/clang-c clang-headers/
