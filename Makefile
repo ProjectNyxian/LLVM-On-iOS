@@ -87,7 +87,6 @@ LLVM-iphoneos/llvm.a: LLVM-iphoneos
 		LLVM-iphoneos/lib/libclang*.a \
 		LLVM-iphoneos/lib/liblld*.a \
 		LIBFFI-iphoneos/libffi.a
-	install_name_tool -id "@rpath/llvm.dylib" LLVM-iphoneos/llvm.dylib
 
 LLVM.xcframework: LLVM-iphoneos/llvm.a
 	$(call log_info,creating LLVM framework out of llvm ($(LLVM_VER)))
