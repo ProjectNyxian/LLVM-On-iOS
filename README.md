@@ -1,7 +1,7 @@
 # LLVM-On-iOS
 LLVM distribution for apple mobile devices without any hastle.
 ## Building
-````bash
+```bash
 git clone https://github.com/NyxianProject/LLVM-On-iOS.git
 cd LLVM-On-iOS
 ```
