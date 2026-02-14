@@ -4,6 +4,7 @@ LLVM distribution for apple mobile devices without any hastle.
 ```bash
 git clone https://github.com/NyxianProject/LLVM-On-iOS.git
 cd LLVM-On-iOS
+make
 ```
 ## Todo
 - [x] LLVM.xcframework
