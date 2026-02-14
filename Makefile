@@ -1,6 +1,6 @@
 # Quick configurations
 ROOT := $(PWD)
-LLVM_VER := 21.1.8
+LLVM_VER := 19.1.7
 OS_VER := 14.0
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
@@ -21,9 +21,6 @@ LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DLLVM_ENABLE_EH=OFF \
 					-DLLVM_ENABLE_RTTI=ON \
 					-DLLVM_ENABLE_TERMINFO=OFF \
-					-DLLVM_ENABLE_FFI=ON \
-					-DFFI_INCLUDE_DIR="$(ROOT)/LIBFFI-iphoneos/include/ffi" \
-					-DFFI_LIBRARY_DIR="$(ROOT)/LIBFFI-iphoneos" \
 					-DCMAKE_BUILD_TYPE=Release \
 					-DCMAKE_INSTALL_PREFIX="$(ROOT)/LLVM-iphoneos" \
 					-DCMAKE_TOOLCHAIN_FILE=../llvm/cmake/platforms/iOS.cmake \
@@ -44,20 +41,6 @@ endef
 # Actual Makefile
 all: LLVM.xcframework Clang.xcframework clean
 
-libffi:
-	$(call log_info,extracting libffi)
-	tar xzf libffi.tar
-
-LIBFFI-iphoneos: libffi
-LIBFFI-iphoneos:
-	$(call log_info,fixing libffi python script permissions)
-	chmod +x libffi/generate-darwin-source-and-headers.py
-	$(call log_info,building libffi)
-	cd libffi; \
-		./generate-darwin-source-and-headers.py --only-ios; \
-		xcodebuild -scheme libffi-iOS -sdk iphoneos -configuration Release SYMROOT="$(PWD)"
-	mv Release-iphoneos LIBFFI-iphoneos
-
 llvm-project-$(LLVM_VER).src.tar.xz:
 	$(call log_info,downloading llvm ($(LLVM_VER)))
 	curl -OL https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_VER)/llvm-project-$(LLVM_VER).src.tar.xz
@@ -75,7 +58,7 @@ llvm-project-$(LLVM_VER).src/build:
 	$(call log_info,patching configuration of llvm ($(LLVM_VER)))
 	sed -i.bak 's/^HAVE_FFI_CALL:INTERNAL=/HAVE_FFI_CALL:INTERNAL=1/g' llvm-project-$(LLVM_VER).src/build/CMakeCache.txt
 
-LLVM-iphoneos: LIBFFI-iphoneos llvm-project-$(LLVM_VER).src llvm-project-$(LLVM_VER).src/build
+LLVM-iphoneos: llvm-project-$(LLVM_VER).src llvm-project-$(LLVM_VER).src/build
 	$(call log_info,building llvm ($(LLVM_VER)))
 	cd llvm-project-$(LLVM_VER).src/build; \
 		cmake --build . --target install
@@ -86,7 +69,6 @@ LLVM-iphoneos/llvm.a: LLVM-iphoneos
 		LLVM-iphoneos/lib/libLLVM*.a \
 		LLVM-iphoneos/lib/libclang*.a \
 		LLVM-iphoneos/lib/liblld*.a \
-		LIBFFI-iphoneos/libffi.a
 
 LLVM.xcframework: LLVM-iphoneos/llvm.a
 	$(call log_info,creating LLVM framework out of llvm ($(LLVM_VER)))
@@ -111,12 +93,9 @@ Clang.xcframework: LLVM-iphoneos
 
 clean:
 	$(call log_info,cleaning up)
-	rm -rf libffi
-	rm -rf libffi-iphoneos
 	rm -rf llvm*
 	rm -rf LLVM-iphoneos
 	rm -rf Release-iphoneos
-	rm -rf LIBFFI-iphoneos
 	rm -rf *headers
 
 clean-all: clean
