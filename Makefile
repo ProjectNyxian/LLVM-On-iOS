@@ -1,6 +1,5 @@
 # Quick configurations
 ROOT := $(PWD)
-LLVM_VER := 19.1.7
 OS_VER := 14.0
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
@@ -38,9 +37,19 @@ define log_info
 	@echo "\033[32m\033[1m[*] \033[0m\033[32m$(1)\033[0m"
 endef
 
-# Actual Makefile
-all: LLVM.xcframework Clang.xcframework clean
+# Main Targets
+all: stable
 
+stable: LLVM_VER := 19.1.7
+stable: LLVM.xcframework Clang.xcframework clean
+
+latest: LLVM_VER := 21.1.8
+latest: LLVM.xcframework Clang.xcframework clean
+
+bleeding-edge: LLVM_VER := 21.1.0-rc3
+bleeding-edge: LLVM.xcframework Clang.xcframework clean
+
+# Actual Makefile
 llvm-project-$(LLVM_VER).src.tar.xz:
 	$(call log_info,downloading llvm ($(LLVM_VER)))
 	curl -OL https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_VER)/llvm-project-$(LLVM_VER).src.tar.xz
