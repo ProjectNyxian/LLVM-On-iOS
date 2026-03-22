@@ -1,6 +1,7 @@
 # Quick configurations
 ROOT := $(PWD)
 OS_VER := 14.0
+LLVM_VER := 19.1.7
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
 
@@ -32,32 +33,25 @@ LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DCMAKE_OSX_ARCHITECTURES="$(APPLE_ARCH)" \
 					-DLLVM_FORCE_VC_REPOSITORY=https://github.com/ProjectNyxian/LLVM-On-iOS
 
-# Helper functions
+# Helper function
 define log_info
 	@echo "\033[32m\033[1m[*] \033[0m\033[32m$(1)\033[0m"
 endef
 
-# Main Targets
-all: stable
+# Main Target
+all: LLVM.xcframework Clang.xcframework
 
-stable: LLVM_VER := 19.1.7
-stable: LLVM.xcframework Clang.xcframework clean
-
-latest: LLVM_VER := 21.1.8
-latest: LLVM.xcframework Clang.xcframework clean
-
-bleeding-edge: LLVM_VER := 21.1.0-rc3
-bleeding-edge: LLVM.xcframework Clang.xcframework clean
-
-# Actual Makefile
+# Fetch
 llvm-project-$(LLVM_VER).src.tar.xz:
 	$(call log_info,downloading llvm ($(LLVM_VER)))
 	curl -OL https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_VER)/llvm-project-$(LLVM_VER).src.tar.xz
 
+# Extract
 llvm-project-$(LLVM_VER).src: llvm-project-$(LLVM_VER).src.tar.xz
 	$(call log_info,extracting llvm ($(LLVM_VER)))
 	tar xzf llvm-project-$(LLVM_VER).src.tar.xz
 
+# Configure
 llvm-project-$(LLVM_VER).src/build:
 	$(call log_info,preparing llvm ($(LLVM_VER)))
 	mkdir llvm-project-$(LLVM_VER).src/build
@@ -67,17 +61,15 @@ llvm-project-$(LLVM_VER).src/build:
 	$(call log_info,patching configuration of llvm ($(LLVM_VER)))
 	sed -i.bak 's/^HAVE_FFI_CALL:INTERNAL=/HAVE_FFI_CALL:INTERNAL=1/g' llvm-project-$(LLVM_VER).src/build/CMakeCache.txt
 
+# Build
 LLVM-iphoneos: llvm-project-$(LLVM_VER).src llvm-project-$(LLVM_VER).src/build
 	$(call log_info,building llvm ($(LLVM_VER)))
-	cd llvm-project-$(LLVM_VER).src/build; \
-		cmake --build . --target install
+	cmake --build llvm-project-$(LLVM_VER).src/build --target install
 
+# Bundle
 LLVM-iphoneos/llvm.a: LLVM-iphoneos
 	$(call log_info,combining LLVM libraries into llvm.a)
-	libtool -static -o LLVM-iphoneos/llvm.a \
-		LLVM-iphoneos/lib/libLLVM*.a \
-		LLVM-iphoneos/lib/libclang*.a \
-		LLVM-iphoneos/lib/liblld*.a \
+	libtool -static -o LLVM-iphoneos/llvm.a LLVM-iphoneos/lib/*.a
 
 LLVM.xcframework: LLVM-iphoneos/llvm.a
 	$(call log_info,creating LLVM framework out of llvm ($(LLVM_VER)))
@@ -100,12 +92,11 @@ Clang.xcframework: LLVM-iphoneos
 		-output Clang.xcframework
 	rm -rf clang-headers
 
+# Cleanup
 clean:
 	$(call log_info,cleaning up)
 	rm -rf llvm*
 	rm -rf LLVM-iphoneos
 	rm -rf Release-iphoneos
 	rm -rf *headers
-
-clean-all: clean
 	rm -rf *.xcframework
