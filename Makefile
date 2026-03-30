@@ -1,7 +1,7 @@
 # Quick configurations
 ROOT := $(PWD)
-OS_VER := 14.0
-LLVM_VER := 19.1.7
+OS_VER := 13.0
+LLVM_TAG := swift-6.3-RELEASE
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
 
@@ -48,29 +48,29 @@ endef
 all: LLVM.xcframework Clang.xcframework
 
 # Fetch
-llvm-project-$(LLVM_VER).src.tar.xz:
-	$(call log_info,downloading llvm ($(LLVM_VER)))
-	curl -OL https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_VER)/llvm-project-$(LLVM_VER).src.tar.xz
+$(LLVM_TAG).zip:
+	$(call log_info,downloading llvm ($(LLVM_TAG)))
+	wget https://github.com/swiftlang/llvm-project/archive/refs/tags/$(LLVM_TAG).zip
 
 # Extract
-llvm-project-$(LLVM_VER).src: llvm-project-$(LLVM_VER).src.tar.xz
-	$(call log_info,extracting llvm ($(LLVM_VER)))
-	tar xzf llvm-project-$(LLVM_VER).src.tar.xz
+llvm-project-$(LLVM_TAG): $(LLVM_TAG).zip
+	$(call log_info,extracting llvm ($(LLVM_TAG)))
+	unzip $(LLVM_TAG).zip
 
 # Configure
-llvm-project-$(LLVM_VER).src/build/build.ninja:
-	$(call log_info,preparing llvm ($(LLVM_VER)))
-	mkdir llvm-project-$(LLVM_VER).src/build
-	$(call log_info,configuring llvm ($(LLVM_VER)))
-	cd llvm-project-$(LLVM_VER).src/build; \
+llvm-project-$(LLVM_TAG)/build/build.ninja:
+	$(call log_info,preparing llvm ($(LLVM_TAG)))
+	mkdir  llvm-project-$(LLVM_TAG)/build
+	$(call log_info,configuring llvm ($(LLVM_TAG)))
+	cd llvm-project-$(LLVM_TAG)/build; \
 	    cmake $(LLVM_CMAKE_FLAGS) ../llvm
-	$(call log_info,patching configuration of llvm ($(LLVM_VER)))
-	sed -i.bak 's/^HAVE_FFI_CALL:INTERNAL=/HAVE_FFI_CALL:INTERNAL=1/g' llvm-project-$(LLVM_VER).src/build/CMakeCache.txt
+	$(call log_info,patching configuration of llvm ($(LLVM_TAG)))
+	sed -i.bak 's/^HAVE_FFI_CALL:INTERNAL=/HAVE_FFI_CALL:INTERNAL=1/g'  llvm-project-$(LLVM_TAG)/build/CMakeCache.txt
 
 # Build
-LLVM-iphoneos: llvm-project-$(LLVM_VER).src llvm-project-$(LLVM_VER).src/build/build.ninja
-	$(call log_info,building llvm ($(LLVM_VER)))
-	cmake --build llvm-project-$(LLVM_VER).src/build --target install
+LLVM-iphoneos: llvm-project-$(LLVM_TAG) llvm-project-$(LLVM_TAG)/build/build.ninja
+	$(call log_info,building llvm ($(LLVM_TAG)))
+	cmake --build llvm-project-$(LLVM_TAG)/build --target install
 
 # Bundle
 LLVM-iphoneos/llvm.a: LLVM-iphoneos
@@ -78,7 +78,7 @@ LLVM-iphoneos/llvm.a: LLVM-iphoneos
 	libtool -static -o LLVM-iphoneos/llvm.a LLVM-iphoneos/lib/*.a
 
 LLVM.xcframework: LLVM-iphoneos/llvm.a
-	$(call log_info,creating LLVM framework out of llvm ($(LLVM_VER)))
+	$(call log_info,creating LLVM framework out of llvm ($(LLVM_TAG)))
 	mkdir llvm-headers
 	cp -r LLVM-iphoneos/include/* llvm-headers/
 	rm -rf llvm-headers/clang-c
@@ -89,7 +89,7 @@ LLVM.xcframework: LLVM-iphoneos/llvm.a
 	rm -rf llvm-headers
 
 Clang.xcframework: LLVM-iphoneos
-	$(call log_info,creating Clang framework out of llvm ($(LLVM_VER)))
+	$(call log_info,creating Clang framework out of llvm ($(LLVM_TAG)))
 	mkdir clang-headers
 	cp -r LLVM-iphoneos/include/clang-c clang-headers/
 	xcodebuild -create-xcframework \
@@ -106,3 +106,4 @@ clean:
 	rm -rf Release-iphoneos
 	rm -rf *headers
 	rm -rf *.xcframework
+	rm -rf swift*

@@ -21,3 +21,4 @@ libffi/
 tools/
 LLVM**.xcframework/
 Clang**.xcframework/
+swift*
