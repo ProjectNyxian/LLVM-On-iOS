@@ -45,7 +45,7 @@ define log_info
 endef
 
 # Main Target
-all: LLVM.xcframework Clang.xcframework
+all: LLVM.xcframework
 
 # Fetch
 llvm-project-$(LLVM_VER).src.tar.xz:
@@ -79,24 +79,10 @@ LLVM-iphoneos/llvm.a: LLVM-iphoneos
 
 LLVM.xcframework: LLVM-iphoneos/llvm.a
 	$(call log_info,creating LLVM framework out of llvm ($(LLVM_VER)))
-	mkdir llvm-headers
-	cp -r LLVM-iphoneos/include/* llvm-headers/
-	rm -rf llvm-headers/clang-c
 	xcodebuild -create-xcframework \
 		-library "LLVM-iphoneos/llvm.a" \
-	 	-headers "llvm-headers" \
+	 	-headers "LLVM-iphoneos/include" \
 	 	-output LLVM.xcframework
-	rm -rf llvm-headers
-
-Clang.xcframework: LLVM-iphoneos
-	$(call log_info,creating Clang framework out of llvm ($(LLVM_VER)))
-	mkdir clang-headers
-	cp -r LLVM-iphoneos/include/clang-c clang-headers/
-	xcodebuild -create-xcframework \
-		-library "LLVM-iphoneos/lib/libclang.dylib" \
-		-headers "clang-headers" \
-		-output Clang.xcframework
-	rm -rf clang-headers
 
 # Cleanup
 clean:
