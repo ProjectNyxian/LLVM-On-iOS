@@ -1,7 +1,6 @@
 # Quick configurations
 ROOT := $(PWD)
 OS_VER := 14.0
-LLVM_VER := 19.1.7
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
 
@@ -48,29 +47,24 @@ endef
 all: LLVM.xcframework
 
 # Fetch
-llvm-project-$(LLVM_VER).src.tar.xz:
-	$(call log_info,downloading llvm ($(LLVM_VER)))
-	curl -OL https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_VER)/llvm-project-$(LLVM_VER).src.tar.xz
-
-# Extract
-llvm-project-$(LLVM_VER).src: llvm-project-$(LLVM_VER).src.tar.xz
-	$(call log_info,extracting llvm ($(LLVM_VER)))
-	tar xzf llvm-project-$(LLVM_VER).src.tar.xz
+llvm-project:
+	$(call log_info,downloading llvm)
+	git clone https://github.com/ProjectNyxian/llvm-project
 
 # Configure
-llvm-project-$(LLVM_VER).src/build/build.ninja:
-	$(call log_info,preparing llvm ($(LLVM_VER)))
-	mkdir llvm-project-$(LLVM_VER).src/build
-	$(call log_info,configuring llvm ($(LLVM_VER)))
-	cd llvm-project-$(LLVM_VER).src/build; \
+llvm-project/build/build.ninja:
+	$(call log_info,preparing llvm)
+	mkdir llvm-project/build
+	$(call log_info,configuring llvm)
+	cd llvm-project/build; \
 	    cmake $(LLVM_CMAKE_FLAGS) ../llvm
-	$(call log_info,patching configuration of llvm ($(LLVM_VER)))
-	sed -i.bak 's/^HAVE_FFI_CALL:INTERNAL=/HAVE_FFI_CALL:INTERNAL=1/g' llvm-project-$(LLVM_VER).src/build/CMakeCache.txt
+	$(call log_info,patching configuration of llvm)
+	sed -i.bak 's/^HAVE_FFI_CALL:INTERNAL=/HAVE_FFI_CALL:INTERNAL=1/g' llvm-project/build/CMakeCache.txt
 
 # Build
-LLVM-iphoneos: llvm-project-$(LLVM_VER).src llvm-project-$(LLVM_VER).src/build/build.ninja
-	$(call log_info,building llvm ($(LLVM_VER)))
-	cmake --build llvm-project-$(LLVM_VER).src/build --target install
+LLVM-iphoneos: llvm-project llvm-project/build/build.ninja
+	$(call log_info,building llvm)
+	cmake --build llvm-project/build --target install
 
 # Bundle
 LLVM-iphoneos/llvm.a: LLVM-iphoneos
