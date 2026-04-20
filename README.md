@@ -8,16 +8,14 @@ LLVM distribution for apple mobile devices without any complications. Originally
 ```bash
 git clone https://github.com/NyxianProject/LLVM-On-iOS.git
 cd LLVM-On-iOS
-make
+make all
 ```
+
 ## Included
 - [x] LLVM.xcframework
     - Assembler
-    - Clang (C,C++,ObjC,ObjC++ Compiler)
+    - Clang (C,C++,ObjC,ObjC++ Compiler/AST API's)
     - LLD (Linker for object files)
-- [x] Clang.xcframework
-    - Libclang (Compiler library for parsing)
-- [ ] Swift.xcframeworks
 
 ## Todo
 - create a .framework
