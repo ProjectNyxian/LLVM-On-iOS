@@ -45,7 +45,7 @@ define log_info
 endef
 
 # Main Target
-all: LLVM.xcframework
+all: CoreCompiler.framework/CoreCompiler
 
 # Fetch
 llvm-project:
@@ -78,6 +78,16 @@ LLVM.xcframework: LLVM-iphoneos/llvm.a
 		-library "LLVM-iphoneos/llvm.a" \
 	 	-headers "LLVM-iphoneos/include" \
 	 	-output LLVM.xcframework
+
+CoreCompiler.framework/CoreCompiler: SDK := $(shell xcrun --sdk iphoneos --show-sdk-path)
+CoreCompiler.framework/CoreCompiler: INC := -ISource -ILLVM.xcframework/ios-arm64/Headers
+CoreCompiler.framework/CoreCompiler: LLVM.xcframework
+	$(call log_info,building CoreCompiler framework)
+	-rm *.o
+	clang -c -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.c
+	clang++ -c -std=c++17 -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.cpp
+	clang++ -target $(TARGET_TRIPLE) -isysroot $(SDK) *.o LLVM.xcframework/ios-arm64/llvm.a  -framework CoreFoundation -o CoreCompiler.framework/CoreCompiler -shared -fPIC
+	-rm *.o
 
 # Cleanup
 clean:

@@ -21,3 +21,5 @@ libffi/
 tools/
 LLVM**.xcframework/
 Clang**.xcframework/
+CoreCompiler.framework/CoreCompiler
+LLVM-iphoneos/
