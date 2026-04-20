@@ -13,14 +13,19 @@ make all
 
 ## Included
 - [x] LLVM.xcframework
-    - Assembler
-    - Clang (C,C++,ObjC,ObjC++ Compiler/AST API's)
-    - LLD (Linker for object files)
+    - [x] Assembler
+    - [x] Clang (C,C++,ObjC,ObjC++ Compiler/AST API's)
+    - [x] LLD (Linker for object files)
+- [x] CoreCompiler.framework
+    - [x] Easy to use ARC compatible abstraction over LLVM
+    - [x] Incremental typechecking possible
+    - [x] Compiling C language files to object files
+    - [x] Linking Object files to MachO possible
+    - [ ] C language file indexing
+    - [ ] Easy clang invocation in-process (still needs CCKDriver invocation and manual CCKJob execution using CCKCompiler/CCKLinker)
+    - [ ] Easy linker invocation in-process
 
 ## Todo
-- create a .framework
 - create a swift package for swift projects (kinda needs the following Todo aswell).
-- create a API for swift projects to interact with this better
 - compile swift compiler for iOS (specifically needed is the frontend of swift, the part that converts swift code into LLVM IR, because LLVM IR can be compiled down to machine code without any problem...)
-- compile liblldb for iOS (would be nice for debugging, but we decided to write our own debugger in nyxian, as liblldb has some things that make us fearfull)
 - compile libffi for iOS (required for certain JIT operations)
