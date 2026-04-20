@@ -89,4 +89,6 @@ clean:
 		! -name .git \
 		! -name .gitignore \
 		! -name .github \
+		! -name CoreCompiler.framework \
+		! -name Source
 		-exec rm -rf {} +
