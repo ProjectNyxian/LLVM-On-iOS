@@ -62,7 +62,7 @@ static void CCDependencyScannerInit(CFTypeRef cf)
 
 static const CFRuntimeClass gCCDependencyScannerClass = {
     0,                              /* version */
-    "LDEDependencyScanner",         /* class name (later for OBJC type) */
+    "CCKDependencyScanner",         /* class name (later for OBJC type) */
     CCDependencyScannerInit,        /* init */
     NULL,                           /* copy */
     CCDependencyScannerFinalize,    /* finalize */

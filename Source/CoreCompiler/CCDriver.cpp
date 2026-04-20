@@ -76,7 +76,7 @@ static void CCDriverFinalize(CFTypeRef cf)
 
 static const CFRuntimeClass gCCDriverClass = {
     0,                              /* version */
-    "LDEDriver",                    /* class name (later for OBJC type) */
+    "CCKDriver",                    /* class name (later for OBJC type) */
     NULL,                           /* init */
     CCDriverCopy,                   /* copy */
     CCDriverFinalize,               /* finalize */

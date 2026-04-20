@@ -53,7 +53,7 @@ static void CCJobFinalize(CFTypeRef cf)
 
 static const CFRuntimeClass gCCJobClass = {
     0,                              /* version */
-    "LDEJob",                       /* class name (later for OBJC type) */
+    "CCKJob",                       /* class name (later for OBJC type) */
     NULL,                           /* init */
     CCJobCopy,                      /* copy */
     CCJobFinalize,                  /* finalize */

@@ -85,8 +85,9 @@ CoreCompiler.framework/CoreCompiler: LLVM.xcframework
 	$(call log_info,building CoreCompiler framework)
 	-rm *.o
 	clang -c -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.c
+	clang -c -fobjc-arc -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.m
 	clang++ -c -std=c++17 -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.cpp
-	clang++ -target $(TARGET_TRIPLE) -isysroot $(SDK) *.o LLVM.xcframework/ios-arm64/llvm.a  -framework CoreFoundation -o CoreCompiler.framework/CoreCompiler -shared -fPIC
+	clang++ -fobjc-arc -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) *.o LLVM.xcframework/ios-arm64/llvm.a  -framework CoreFoundation -o CoreCompiler.framework/CoreCompiler -shared -fPIC
 	-rm *.o
 	-rm -rf CoreCompiler.framework/Headers
 	mkdir -p CoreCompiler.framework/Headers

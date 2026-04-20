@@ -77,7 +77,7 @@ static void CCASTUnitInit(CFTypeRef cf)
 
 static const CFRuntimeClass gCCASTUnitClass = {
     0,                              /* version */
-    "LDEASTUnit",                   /* class name (later for OBJC type) */
+    "CCKASTUnit",                   /* class name (later for OBJC type) */
     CCASTUnitInit,                  /* init */
     NULL,                           /* copy */
     CCASTUnitFinalize,              /* finalize */
