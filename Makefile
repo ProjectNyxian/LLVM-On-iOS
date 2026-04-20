@@ -83,17 +83,22 @@ CoreCompiler.framework/CoreCompiler: SDK := $(shell xcrun --sdk iphoneos --show-
 CoreCompiler.framework/CoreCompiler: INC := -ISource -ILLVM.xcframework/ios-arm64/Headers
 CoreCompiler.framework/CoreCompiler: LLVM.xcframework
 	$(call log_info,building CoreCompiler framework)
-	-rm -rf *.o
+	-rm *.o
 	clang -c -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.c
 	clang++ -c -std=c++17 -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.cpp
 	clang++ -target $(TARGET_TRIPLE) -isysroot $(SDK) *.o LLVM.xcframework/ios-arm64/llvm.a  -framework CoreFoundation -o CoreCompiler.framework/CoreCompiler -shared -fPIC
-	-rm -rf *.o
+	-rm *.o
 	-rm -rf CoreCompiler.framework/Headers
 	mkdir -p CoreCompiler.framework/Headers
 	cp Source/CoreCompiler/*.h CoreCompiler.framework/Headers/
 
 # Cleanup
-clean:
+clean-artifacts:
+	- rm CoreCompiler.framework/CoreCompiler
+	- rm CoreCompiler.framework/Headers/*
+	- rm -rf LLVM.xcframework
+
+clean: clean-artifacts
 	$(call log_info,cleaning up)
 	find . -mindepth 1 -maxdepth 1 \
 		! -name Makefile \
