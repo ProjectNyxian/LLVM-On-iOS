@@ -109,5 +109,5 @@ clean: clean-artifacts
 		! -name .gitignore \
 		! -name .github \
 		! -name CoreCompiler.framework \
-		! -name Source
+		! -name Source \
 		-exec rm -rf {} +
