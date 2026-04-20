@@ -3,6 +3,7 @@ ROOT := $(PWD)
 OS_VER := 14.0
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
+TARGET_TRIPLE := $(APPLE_ARCH)-apple-ios$(OS_VER)
 
 # Cmake configurations
 LLVM_CMAKE_FLAGS := -G "Ninja" \
@@ -10,7 +11,7 @@ LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DLLVM_ENABLE_PROJECTS="clang;lld" \
 					-DLLVM_TARGETS_TO_BUILD="$(LLVM_ARCH)" \
 					-DLLVM_TARGET_ARCH="$(LLVM_ARCH)" \
-					-DLLVM_DEFAULT_TARGET_TRIPLE="$(APPLE_ARCH)-apple-ios" \
+					-DLLVM_DEFAULT_TARGET_TRIPLE="$(TARGET_TRIPLE)" \
 					-DBUILD_SHARED_LIBS=OFF \
 					-DLLVM_ENABLE_ZLIB=OFF \
 					-DLLVM_ENABLE_ZSTD=OFF \
@@ -25,8 +26,8 @@ LLVM_CMAKE_FLAGS := -G "Ninja" \
 					-DCLANG_ENABLE_STATIC_ANALYZER=OFF \
 					-DCLANG_ENABLE_ARCMT=OFF \
 					-DCLANG_TABLEGEN_TARGETS="$(LLVM_ARCH)" \
-					-DCMAKE_C_FLAGS="-target $(APPLE_ARCH)-apple-ios$(OS_VER)" \
-					-DCMAKE_CXX_FLAGS="-target $(APPLE_ARCH)-apple-ios$(OS_VER)" \
+					-DCMAKE_C_FLAGS="-target $(TARGET_TRIPLE)" \
+					-DCMAKE_CXX_FLAGS="-target $(TARGET_TRIPLE)" \
 					-DCMAKE_OSX_ARCHITECTURES="$(APPLE_ARCH)" \
 					-DLLVM_FORCE_VC_REPOSITORY=https://github.com/ProjectNyxian/LLVM-On-iOS \
 					-DLLVM_BUILD_UTILS=OFF \
@@ -81,8 +82,11 @@ LLVM.xcframework: LLVM-iphoneos/llvm.a
 # Cleanup
 clean:
 	$(call log_info,cleaning up)
-	rm -rf llvm*
-	rm -rf LLVM-iphoneos
-	rm -rf Release-iphoneos
-	rm -rf *headers
-	rm -rf *.xcframework
+	find . -mindepth 1 -maxdepth 1 \
+		! -name Makefile \
+		! -name LICENSE \
+		! -name README.md \
+		! -name .git \
+		! -name .gitignore \
+		! -name .github \
+		-exec rm -rf {} +
