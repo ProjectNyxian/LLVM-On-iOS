@@ -73,7 +73,7 @@ LLVM-iphoneos/llvm.a: LLVM-iphoneos
 	libtool -static -o LLVM-iphoneos/llvm.a LLVM-iphoneos/lib/*.a
 
 LLVM.xcframework: LLVM-iphoneos/llvm.a
-	$(call log_info,creating LLVM framework out of llvm ($(LLVM_VER)))
+	$(call log_info,creating LLVM framework out of llvm)
 	xcodebuild -create-xcframework \
 		-library "LLVM-iphoneos/llvm.a" \
 	 	-headers "LLVM-iphoneos/include" \
