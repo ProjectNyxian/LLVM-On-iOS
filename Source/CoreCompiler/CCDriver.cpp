@@ -156,7 +156,7 @@ static CCJobType _CCJobTypeGetFromCommand(const clang::driver::Command *Cmd)
     }
 }
 
-CFArrayRef CCDriverCopyJobs(CCDriverRef driver)
+CFArrayRef CCDriverCreateJobs(CCDriverRef driver)
 {
     llvm::SmallVector<const char *, 64> Args = StringVectorToCStrings(driver->argStorage);
     

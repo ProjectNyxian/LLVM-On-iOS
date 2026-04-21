@@ -146,6 +146,8 @@ CC_EXPORT CCDiagnosticRef CCDiagnosticCreate(CFAllocatorRef allocator,
                                              CCFileSourceLocationRef fileSourceLocation,
                                              CFStringRef message)
 {
+    assert(message != nil);
+    
     CCDiagnosticRef diagnostic = (CCDiagnosticRef)_CFRuntimeCreateInstance(allocator, CCDiagnosticGetTypeID(), sizeof(struct opaque_ccdiag) - sizeof(CFRuntimeBase), NULL);
     if(diagnostic == nil)
     {

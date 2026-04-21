@@ -37,7 +37,8 @@
 
 @protocol CCKDriverDelegate <NSObject>
 @optional
-- (NSString*)driver:(CCKDriver*)driver outputPathForInputFile:(CCKFile*)file skipCompile:(BOOL*)skip;
+- (NSString*)driver:(CCKDriver*)driver outputPathForInputFile:(CCKFile*)file;
+- (BOOL)driver:(CCKDriver*)driver skipCompileForInputFile:(CCKFile*)file;
 @end
 
 @interface CCKDriver : CCKCFType

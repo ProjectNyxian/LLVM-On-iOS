@@ -28,21 +28,31 @@
 #import <Block.h>
 #import <objc/runtime.h>
 
-static const char *CCKDriverOutputPathBridge(const char *baseInput, bool *skip, void *ctx)
+static const char *CCKDriverOutputPathBridge(const char *baseInput,
+                                             bool *skip,
+                                             void *ctx)
 {
     CCKDriver *driver = (__bridge CCKDriver*)ctx;
     id<CCKDriverDelegate> delegate = driver.delegate;
-    
-    if(![delegate respondsToSelector:@selector(driver:outputPathForInputFile:skipCompile:)])
+
+    CCKFile *file = [CCKFile fileWithCString:baseInput encoding:NSUTF8StringEncoding];
+    if(file == nil)
+    {
+        /* file creation failure */
+        return nil;
+    }
+
+    if([delegate respondsToSelector:@selector(driver:skipCompileForInputFile:)])
+    {
+        *skip = [delegate driver:driver skipCompileForInputFile:file];
+    }
+
+    if(![delegate respondsToSelector:@selector(driver:outputPathForInputFile:)])
     {
         return nil;
     }
-    
-    NSString *inputPath = [NSString stringWithUTF8String:baseInput];
-    NSURL *inputURL = [NSURL fileURLWithPath:inputPath];
-    CCKFile *file = [CCKFile fileWithURL:inputURL];
-    
-    NSString *result = [delegate driver:driver outputPathForInputFile:file skipCompile:skip];
+
+    NSString *result = [delegate driver:driver outputPathForInputFile:file];
     return result.UTF8String;
 }
 
@@ -69,7 +79,7 @@ static const void *CCKDriverDelegateKey = &CCKDriverDelegateKey;
 
 - (NSArray<CCKJob*>*)generateJobs
 {
-    return (__bridge_transfer NSArray<CCKJob*>*)CCDriverCopyJobs((__bridge CCDriverRef)self);
+    return (__bridge_transfer NSArray<CCKJob*>*)CCDriverCreateJobs((__bridge CCDriverRef)self);
 }
 
 - (NSURL*)sysrootURL
