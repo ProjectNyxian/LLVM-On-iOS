@@ -28,7 +28,7 @@
 #import <Block.h>
 #import <objc/runtime.h>
 
-static const char *CCKDriverOutputPathBridge(const char *baseInput,
+static CFStringRef CCKDriverOutputPathBridge(const char *baseInput,
                                              bool *skip,
                                              void *ctx)
 {
@@ -53,7 +53,7 @@ static const char *CCKDriverOutputPathBridge(const char *baseInput,
     }
 
     NSString *result = [delegate driver:driver outputPathForInputFile:file];
-    return result.UTF8String;
+    return (__bridge_retained CFStringRef)result;
 }
 
 static const void *CCKDriverDelegateKey = &CCKDriverDelegateKey;

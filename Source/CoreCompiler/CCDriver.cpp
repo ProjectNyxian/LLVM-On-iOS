@@ -235,16 +235,31 @@ void CCDriverSetOutputPathCallback(CCDriverRef driver,
         {
             return "";
         }
-        
-        bool shouldSkip = false;
-        const char *result = callback(baseInput, &shouldSkip, driver->outputPathCallbackContext);
+
+        CFStringRef result = callback(baseInput, skip, driver->outputPathCallbackContext);
         if(!result)
         {
             return "";
         }
-        
-        *skip = shouldSkip;
-        return std::string(result);
+
+        std::string out;
+        const char *fast = CFStringGetCStringPtr(result, kCFStringEncodingUTF8);
+        if(fast)
+        {
+            out.assign(fast);
+        }
+        else
+        {
+            CFIndex len = CFStringGetLength(result);
+            CFIndex max = CFStringGetMaximumSizeForEncoding(len, kCFStringEncodingUTF8) + 1;
+            out.resize(max);
+            CFIndex used = 0;
+            CFStringGetBytes(result, CFRangeMake(0, len), kCFStringEncodingUTF8, 0, false, (UInt8 *)out.data(), max, &used);
+            out.resize(used);
+        }
+
+        CFRelease(result);
+        return out;
     };
 }
 
