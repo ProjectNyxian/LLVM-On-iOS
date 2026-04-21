@@ -24,6 +24,7 @@
  */
 
 #include <CoreCompiler/CCLinker.h>
+#include <CoreCompiler/CCUtils.h>
 #include <lld/Common/Driver.h>
 #include <lld/Common/ErrorHandler.h>
 #include <llvm/ADT/ArrayRef.h>
@@ -47,25 +48,12 @@ Boolean CCLinkerJobExecute(CCJobRef job,
     assert(CCJobGetType(job) == CCJobTypeLinker);
     
     CFArrayRef argsArray = CCJobGetArguments(job);
-    CFIndex count = CFArrayGetCount(argsArray);
 
-    llvm::SmallVector<std::string, 64> argStorage;
-    llvm::SmallVector<const char *, 64> Args;
-    argStorage.reserve(count);
-    Args.reserve(count);
+    llvm::SmallVector<std::string, 64> argStorage = CCArrayToStringVector(argsArray);
+    llvm::SmallVector<const char *, 64> Args = StringVectorToCStrings(argStorage);
     
     argStorage.push_back("ld64.lld");   /* have to inject */
-    Args.push_back(argStorage.back().c_str());
-
-    for(CFIndex i = 0; i < count; i++)
-    {
-        CFStringRef s = (CFStringRef)CFArrayGetValueAtIndex(argsArray, i);
-        CFIndex len = CFStringGetMaximumSizeForEncoding(CFStringGetLength(s), kCFStringEncodingUTF8) + 1;
-        argStorage.push_back(std::string(len, '\0'));
-        CFStringGetCString(s, argStorage.back().data(), len, kCFStringEncodingUTF8);
-        argStorage.back().resize(strlen(argStorage.back().c_str()));
-        Args.push_back(argStorage.back().c_str());
-    }
+    Args.insert(Args.begin(), argStorage.back().c_str());
     
     std::vector<LDDiagnostic> diagnostics;
     int retCode;
