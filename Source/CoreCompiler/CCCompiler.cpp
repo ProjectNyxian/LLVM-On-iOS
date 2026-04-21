@@ -24,6 +24,7 @@
  */
 
 #include <CoreCompiler/CCCompiler.h>
+#include <CoreCompiler/CCUtils.h>
 #include <clang/Basic/Diagnostic.h>
 #include <clang/Basic/DiagnosticOptions.h>
 #include <clang/Basic/SourceManager.h>
@@ -51,22 +52,9 @@ CCASTUnitRef CCCompilerJobExecute(CCJobRef job)
     assert(CCJobGetType(job) == CCJobTypeCompiler);
     
     CFArrayRef argsArray = CCJobGetArguments(job);
-    CFIndex count = CFArrayGetCount(argsArray);
 
-    llvm::SmallVector<std::string, 64> argStorage;
-    llvm::SmallVector<const char *, 64> Args;
-    argStorage.reserve(count);
-    Args.reserve(count);
-
-    for(CFIndex i = 0; i < count; i++)
-    {
-        CFStringRef s = (CFStringRef)CFArrayGetValueAtIndex(argsArray, i);
-        CFIndex len = CFStringGetMaximumSizeForEncoding(CFStringGetLength(s), kCFStringEncodingUTF8) + 1;
-        argStorage.push_back(std::string(len, '\0'));
-        CFStringGetCString(s, argStorage.back().data(), len, kCFStringEncodingUTF8);
-        argStorage.back().resize(strlen(argStorage.back().c_str()));
-        Args.push_back(argStorage.back().c_str());
-    }
+    llvm::SmallVector<std::string, 64> argStorage = CCArrayToStringVector(argsArray);
+    llvm::SmallVector<const char *, 64> Args = StringVectorToCStrings(argStorage);
     
     /* setting up clang driver */
     IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(llvm::makeIntrusiveRefCnt<DiagnosticIDs>(), llvm::makeIntrusiveRefCnt<DiagnosticOptions>(), new IgnoringDiagConsumer()));
