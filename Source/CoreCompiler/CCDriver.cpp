@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2024 light-tech
  * Copyright (c) 2026 cr4zyengineer
+ * Copyright (c) 2026 Kyle-Ye
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,6 +52,7 @@ static CFTypeID gCCDriverTypeID = _kCFRuntimeNotATypeID;
 
 struct opaque_ccdriver {
     CFRuntimeBase _base;
+    std::shared_ptr<DiagnosticOptions> diagOpts;
     IntrusiveRefCntPtr<DiagnosticsEngine> diags;
     std::unique_ptr<Driver> driver;
     std::unique_ptr<Compilation> compilation;
@@ -73,6 +75,7 @@ static void CCDriverFinalize(CFTypeRef cf)
     driverRef->compilation.~unique_ptr<Compilation>();
     driverRef->driver.~unique_ptr<Driver>();
     driverRef->diags.~IntrusiveRefCntPtr<DiagnosticsEngine>();
+    driverRef->diagOpts.~shared_ptr<DiagnosticOptions>();
     driverRef->argStorage.~SmallVector<std::string, 64>();
 }
 
@@ -117,16 +120,18 @@ CCDriverRef CCDriverCreate(CFAllocatorRef allocator,
     driverRef->outputPathCallbackContext = nullptr;
 
     /* setting up clang driver */
+    auto DiagOpts = std::make_shared<DiagnosticOptions>();
     IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
-    DiagnosticOptions DiagOpts;
-    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(DiagID, DiagOpts, new clang::IgnoringDiagConsumer(), /*ShouldOwnClient=*/true));
+    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(DiagID, *DiagOpts, new clang::IgnoringDiagConsumer(), /*ShouldOwnClient=*/true));
 
     /* building compilation */
+    new (&driverRef->diagOpts) std::shared_ptr<DiagnosticOptions>();
     new (&driverRef->diags) IntrusiveRefCntPtr<DiagnosticsEngine>();
     new (&driverRef->driver) std::unique_ptr<Driver>();
     new (&driverRef->compilation) std::unique_ptr<Compilation>();
 
     driverRef->callback = nullptr;
+    driverRef->diagOpts = DiagOpts;
     driverRef->diags = Diags;
 
     try

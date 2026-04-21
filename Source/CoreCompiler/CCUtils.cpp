@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2024 light-tech
  * Copyright (c) 2026 cr4zyengineer
+ * Copyright (c) 2026 Kyle-Ye
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -75,6 +76,11 @@ static void CCLLVMErrorHandler(void *userData, const char *reason, bool genCrash
     abort();
 }
 
+void CCInstallLLVMFatalErrorHandler(void)
+{
+    llvm::install_fatal_error_handler(CCLLVMErrorHandler);
+}
+
 __attribute__((constructor))
 void llvm_init(void)
 {
@@ -84,6 +90,6 @@ void llvm_init(void)
     LLVMInitializeAArch64AsmParser();
     LLVMInitializeAArch64AsmPrinter();
     LLVMInitializeAArch64Disassembler();
-    llvm::install_fatal_error_handler(CCLLVMErrorHandler);
+    CCInstallLLVMFatalErrorHandler();
     llvm::CrashRecoveryContext::Enable();
 }

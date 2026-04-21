@@ -17,10 +17,13 @@ xcuserdata/
 !**/*.playground/playground.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
 
 llvm-project/
+SwiftProject
 libffi/
 tools/
 LLVM**.xcframework/
 Clang**.xcframework/
+*.o
 CoreCompiler.framework/CoreCompiler
 LLVM-iphoneos/
 CoreCompiler.framework/Headers/*
+CoreCompiler.framework/lib_Compiler*.dylib

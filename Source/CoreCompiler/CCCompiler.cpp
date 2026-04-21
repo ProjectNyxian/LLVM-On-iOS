@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2024 light-tech
  * Copyright (c) 2026 cr4zyengineer
+ * Copyright (c) 2026 Kyle-Ye
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,8 +59,7 @@ CCASTUnitRef CCCompilerJobExecute(CCJobRef job)
 
     /* setting up clang driver */
     auto DiagOpts = std::make_shared<DiagnosticOptions>();
-    IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
-    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(DiagID, *DiagOpts, new IgnoringDiagConsumer(), /*ShouldOwnClient=*/true));
+    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(llvm::makeIntrusiveRefCnt<DiagnosticIDs>(), *DiagOpts, new IgnoringDiagConsumer()));
 
     /* creating clang invocation */
     auto CI = std::make_shared<CompilerInvocation>();

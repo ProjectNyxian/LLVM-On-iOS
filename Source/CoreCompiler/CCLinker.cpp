@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2024 light-tech
  * Copyright (c) 2026 cr4zyengineer
+ * Copyright (c) 2026 Kyle-Ye
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,8 +56,8 @@ Boolean CCLinkerJobExecute(CCJobRef job,
     argStorage.push_back("ld64.lld");   /* have to inject */
     Args.insert(Args.begin(), argStorage.back().c_str());
 
-    std::string errBuf;
-    int retCode;
+    std::string diagnostics;
+    int retCode = 1;
 
     llvm::CrashRecoveryContext CRC;
     CRC.RunSafely([&]{
@@ -64,40 +65,39 @@ Boolean CCLinkerJobExecute(CCJobRef job,
             {lld::Darwin, &lld::macho::link},
         };
 
-        llvm::raw_string_ostream errStream(errBuf);
-
-        lld::Result result = lld::lldMain(Args, errStream, errStream, drivers);
-
-        errStream.flush();
+        std::string stderrBuffer;
+        llvm::raw_string_ostream stderrStream(stderrBuffer);
+        lld::Result result = lld::lldMain(Args, llvm::nulls(), stderrStream, drivers);
+        stderrStream.flush();
+        diagnostics = stderrBuffer;
         retCode = result.retCode;
 
         lld::CommonLinkerContext::destroy();
     });
 
-    if(!errBuf.empty())
+    if(outDiagnostics != nullptr)
     {
         /* process error returns */
         CFAllocatorRef allocator = CFGetAllocator(job);
-        CFMutableArrayRef result = CFArrayCreateMutable(allocator, 1, &kCFTypeArrayCallBacks);
+        CFMutableArrayRef result = CFArrayCreateMutable(allocator, diagnostics.empty() ? 0 : 1, &kCFTypeArrayCallBacks);
         if(result == nullptr)
         {
             return retCode == 0;
         }
 
-        CCDiagnosticLevel level = (retCode == 0) ? CCDiagnosticLevelWarning : CCDiagnosticLevelError;
-        CFStringRef message = CFStringCreateWithCString(allocator, errBuf.c_str(), kCFStringEncodingUTF8);
-        CCDiagnosticRef diagnosticRef = CCDiagnosticCreate(allocator, CCDiagnosticTypeInternal, level, nullptr, message);
-        CFRelease(message);
-        if(diagnosticRef != nullptr)
+        if(!diagnostics.empty())
         {
-            CFArrayAppendValue(result, diagnosticRef);
-            CFRelease(diagnosticRef);
+            CFStringRef message = CFStringCreateWithCString(allocator, diagnostics.c_str(), kCFStringEncodingUTF8);
+            CCDiagnosticRef diagnosticRef = CCDiagnosticCreate(allocator, CCDiagnosticTypeInternal, retCode == 0 ? CCDiagnosticLevelWarning : CCDiagnosticLevelError, nullptr, message);
+            CFRelease(message);
+            if(diagnosticRef != nullptr)
+            {
+                CFArrayAppendValue(result, diagnosticRef);
+                CFRelease(diagnosticRef);
+            }
         }
 
-        if(outDiagnostics != nullptr)
-        {
-            *outDiagnostics = result;
-        }
+        *outDiagnostics = result;
     }
 
     return retCode == 0;

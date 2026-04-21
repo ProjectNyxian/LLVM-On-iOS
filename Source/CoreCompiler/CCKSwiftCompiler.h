@@ -1,8 +1,6 @@
 /*
  * MIT License
  *
- * Copyright (c) 2024 light-tech
- * Copyright (c) 2026 cr4zyengineer
  * Copyright (c) 2026 Kyle-Ye
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,34 +22,15 @@
  * SOFTWARE.
  */
 
-#ifndef CORECOMPILER_H
-#define CORECOMPILER_H
+#ifndef CCKSWIFTCOMPILER_H
+#define CCKSWIFTCOMPILER_H
 
-#include <CoreCompiler/CCBase.h>
-#include <CoreCompiler/CCSourceLocation.h>
-#include <CoreCompiler/CCFile.h>
-#include <CoreCompiler/CCFileSourceLocation.h>
-#include <CoreCompiler/CCDiagnostic.h>
-#include <CoreCompiler/CCJob.h>
-#include <CoreCompiler/CCDriver.h>
-#include <CoreCompiler/CCSDK.h>
-#include <CoreCompiler/CCASTUnit.h>
-#include <CoreCompiler/CCDependencyScanner.h>
-#include <CoreCompiler/CCCompiler.h>
-#include <CoreCompiler/CCSwiftCompiler.h>
-#include <CoreCompiler/CCLinker.h>
-#include <CoreCompiler/CCUtils.h>
+#import <Foundation/Foundation.h>
 
-#include <CoreCompiler/CCKFile.h>
-#include <CoreCompiler/CCKFileSourceLocation.h>
-#include <CoreCompiler/CCKDiagnostic.h>
-#include <CoreCompiler/CCKJob.h>
-#include <CoreCompiler/CCKDriver.h>
-#include <CoreCompiler/CCKSDK.h>
-#include <CoreCompiler/CCKASTUnit.h>
-#include <CoreCompiler/CCKDependencyScanner.h>
-#include <CoreCompiler/CCKCompiler.h>
-#include <CoreCompiler/CCKSwiftCompiler.h>
-#include <CoreCompiler/CCKLinker.h>
+@interface CCKSwiftCompiler : NSObject
 
-#endif /* CORECOMPILER_H */
++ (BOOL)executeWithArguments:(NSArray<NSString *> *)arguments output:(NSString **)output;
+
+@end
+
+#endif /* CCKSWIFTCOMPILER_H */

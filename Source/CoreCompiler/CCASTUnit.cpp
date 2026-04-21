@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2024 light-tech
  * Copyright (c) 2026 cr4zyengineer
+ * Copyright (c) 2026 Kyle-Ye
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -289,9 +290,8 @@ Boolean CCASTUnitReparse(CCMutableASTUnitRef mutableUnit)
 
     args.push_back(filePath);
 
-    IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
-    auto diagOpts = std::make_shared<DiagnosticOptions>();
-    IntrusiveRefCntPtr<DiagnosticsEngine> diags(new DiagnosticsEngine(diagID, *diagOpts, new clang::IgnoringDiagConsumer(), /*ShouldOwnClient=*/true));
+    auto diagOpts = std::make_shared<clang::DiagnosticOptions>();
+    IntrusiveRefCntPtr<DiagnosticsEngine> diags(new DiagnosticsEngine(llvm::makeIntrusiveRefCnt<DiagnosticIDs>(), *diagOpts, new IgnoringDiagConsumer()));
 
     SmallVector<ASTUnit::RemappedFile, 4> remaps;
     CFDataRef data = CCFileGetUnsavedData(mutableUnit->file);
@@ -598,7 +598,7 @@ CCFileSourceLocationRef CCASTUnitCopyDefinitionAtLocation(CCASTUnitRef unit,
     SourceManager &SM = unit->unit->getSourceManager();
     FileManager &FM = unit->unit->getFileManager();
 
-    auto fileEntry = FM.getFileRef(filePath);
+    auto fileEntry = FM.getOptionalFileRef(filePath);
     if(!fileEntry)
     {
         return nullptr;
