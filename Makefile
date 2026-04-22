@@ -50,7 +50,7 @@ all: CoreCompiler.framework/CoreCompiler
 # Fetch
 llvm-project:
 	$(call log_info,downloading llvm)
-	git clone https://github.com/ProjectNyxian/llvm-project
+	git clone --depth 1 --branch llvmorg-19.1.7 https://github.com/llvm/llvm-project.git
 
 # Configure
 llvm-project/build/build.ninja:
