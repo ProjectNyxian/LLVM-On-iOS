@@ -86,7 +86,7 @@ CoreCompiler.framework/CoreCompiler: LLVM.xcframework
 	-rm *.o
 	clang -c -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.c
 	clang -c -fobjc-arc -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.m
-	clang++ -c -std=c++17 -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.cpp
+	clang++ -c -Wno-elaborated-enum-base -std=c++17 -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.cpp
 	clang++ -fobjc-arc -fno-rtti -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections -Wl,-dead_strip -flto=full -Os -fno-exceptions -Wl,-x -Wl,-S -Wl,-dead_strip_dylibs -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) *.o LLVM.xcframework/ios-arm64/llvm.a  -framework CoreFoundation -o CoreCompiler.framework/CoreCompiler -shared -fPIC -install_name @rpath/CoreCompiler.framework/CoreCompiler
 	-rm *.o
 	-rm -rf CoreCompiler.framework/Headers
