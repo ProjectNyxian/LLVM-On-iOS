@@ -17,13 +17,13 @@ make all
     - [x] Clang (C,C++,ObjC,ObjC++ Compiler/AST API's)
     - [x] LLD (Linker for object files)
 - [x] CoreCompiler.framework
-    - [x] Easy to use ARC compatible abstraction over LLVM
-    - [x] Incremental typechecking possible
-    - [x] Compiling C language files to object files
-    - [x] Linking Object files to MachO possible
+    - [x] Easy to use ARC compatible abstraction over LLVM (CoreCompiler)
+    - [x] Incremental typechecking (CCKASTUnit)
+    - [x] Compiling C language files to object files (CCKCompiler)
+    - [x] Linking Object files to MachO (CCKLinker)
     - [ ] C language file indexing
-    - [ ] Easy clang invocation in-process (still needs CCKDriver invocation and manual CCKJob execution using CCKCompiler/CCKLinker)
-    - [ ] Easy linker invocation in-process
+    - [x] Easy clang invocation in-process (CCKProgramCompiler)
+    - [x] Easy linker invocation in-process (CCKProgramCompiler)
 
 ## Todo
 - create a swift package for swift projects (kinda needs the following Todo aswell).
