@@ -45,6 +45,7 @@
 
 using namespace clang;
 using namespace clang::driver;
+using namespace llvm::opt;
 
 static CFTypeID gCCDriverTypeID = _kCFRuntimeNotATypeID;
 
@@ -55,6 +56,7 @@ struct opaque_ccdriver {
     std::unique_ptr<Compilation> compilation;
     llvm::SmallVector<std::string, 64> argStorage;
     void *outputPathCallbackContext;
+    CCOutputPathCallback callback;
 };
 
 static CFTypeRef CCDriverCopy(CFAllocatorRef allocator,
@@ -102,28 +104,29 @@ CCDriverRef CCDriverCreate(CFAllocatorRef allocator,
                            CFArrayRef arguments)
 {
     assert(arguments != nullptr);
-    
+
     CCDriverRef driverRef = (CCDriverRef)_CFRuntimeCreateInstance(allocator, CCDriverGetTypeID(), sizeof(struct opaque_ccdriver) - sizeof(CFRuntimeBase), NULL);
     if(driverRef == nullptr)
     {
         return nullptr;
     }
-    
+
     driverRef->argStorage = CCArrayToStringVector(arguments);
     driverRef->argStorage.insert(driverRef->argStorage.begin(), "-fuse-ld=lld");
     driverRef->argStorage.insert(driverRef->argStorage.begin(), "clang");
     driverRef->outputPathCallbackContext = nullptr;
-    
+
     /* setting up clang driver */
     IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(llvm::makeIntrusiveRefCnt<DiagnosticIDs>(), llvm::makeIntrusiveRefCnt<DiagnosticOptions>(), new IgnoringDiagConsumer()));
-    
+
     /* building compilation */
     new (&driverRef->diags) IntrusiveRefCntPtr<DiagnosticsEngine>();
     new (&driverRef->driver) std::unique_ptr<Driver>();
     new (&driverRef->compilation) std::unique_ptr<Compilation>();
-    
+
+    driverRef->callback = nullptr;
     driverRef->diags = Diags;
-    
+
     try
     {
         driverRef->driver = std::make_unique<Driver>("clang", "", *Diags);
@@ -133,14 +136,14 @@ CCDriverRef CCDriverCreate(CFAllocatorRef allocator,
         CFRelease(driverRef);
         return nullptr;
     }
-    
+
     return driverRef;
 }
 
 static CCJobType _CCJobTypeGetFromCommand(const clang::driver::Command *Cmd)
 {
     const clang::driver::Action &source = Cmd->getSource();
-    
+
     if(clang::isa<clang::driver::CompileJobAction>(source) ||
        clang::isa<clang::driver::AssembleJobAction>(source))
     {
@@ -159,31 +162,143 @@ static CCJobType _CCJobTypeGetFromCommand(const clang::driver::Command *Cmd)
 CFArrayRef CCDriverCreateJobs(CCDriverRef driver)
 {
     llvm::SmallVector<const char *, 64> Args = StringVectorToCStrings(driver->argStorage);
-    
+
     driver->compilation.reset(driver->driver->BuildCompilation(Args));
-    
     if(driver->compilation == nullptr)
     {
         return nullptr;
     }
-    
-    /* getting jobs */
-    const auto &Jobs = driver->compilation->getJobs();
-    
+
+    llvm::StringMap<const char *> pathRemap;
+    llvm::SmallPtrSet<const Command *, 8> skippedJobs;
+
+    /* generating jobs and invoking delegation */
+    if(driver->callback != nullptr)
+    {
+        for(auto &Job : driver->compilation->getJobs())
+        {
+            if(!isa<Command>(Job))
+            {
+                continue;
+            }
+
+            Command &Cmd = const_cast<Command &>(cast<Command>(Job));
+            const Action &Src = Cmd.getSource();
+
+            bool isCompile = isa<CompileJobAction>(Src) || isa<AssembleJobAction>(Src);
+            if(!isCompile)
+            {
+                continue;
+            }
+
+            const Action *leaf = &Src;
+            while(!leaf->getInputs().empty())
+            {
+                leaf = leaf->getInputs()[0];
+            }
+
+            const char *baseInput = nullptr;
+            if(auto *IA = dyn_cast<InputAction>(leaf))
+            {
+                baseInput = IA->getInputArg().getValue();
+            }
+
+            bool skip = false;
+            CFStringRef newCF = driver->callback(baseInput, &skip, driver->outputPathCallbackContext);
+            if(newCF == nullptr)
+            {
+                continue;
+            }
+
+            std::string s;
+            const char *fast = CFStringGetCStringPtr(newCF, kCFStringEncodingUTF8);
+            if(fast)
+            {
+                s.assign(fast);
+            }
+            else
+            {
+                CFIndex len = CFStringGetLength(newCF);
+                CFIndex max = CFStringGetMaximumSizeForEncoding(len, kCFStringEncodingUTF8) + 1;
+                s.resize(max);
+                CFIndex used = 0;
+                CFStringGetBytes(newCF, CFRangeMake(0, len), kCFStringEncodingUTF8, 0, false, (UInt8 *)s.data(), max, &used);
+                s.resize(used);
+            }
+            CFRelease(newCF);
+
+            const char *newArg = driver->compilation->getArgs().MakeArgString(s);
+
+            ArgStringList newArgs;
+            const auto &old = Cmd.getArguments();
+            for(size_t i = 0; i < old.size(); ++i)
+            {
+                if(StringRef(old[i]) == "-o" && i + 1 < old.size())
+                {
+                    pathRemap[old[i + 1]] = newArg;
+                    newArgs.push_back(old[i]);
+                    newArgs.push_back(newArg);
+                    ++i;
+                }
+                else
+                {
+                    newArgs.push_back(old[i]);
+                }
+            }
+            Cmd.replaceArguments(newArgs);
+
+            if(skip)
+            {
+                skippedJobs.insert(&Cmd);
+            }
+        }
+    }
+
+    /* rewrite linker inputs using pathRemap */
+    if(!pathRemap.empty())
+    {
+        for(auto &Job : driver->compilation->getJobs())
+        {
+            if(!isa<Command>(Job))
+            {
+                continue;
+            }
+
+            Command &Cmd = const_cast<Command &>(cast<Command>(Job));
+            if(!isa<LinkJobAction>(Cmd.getSource()))
+            {
+                continue;
+            }
+
+            ArgStringList newArgs;
+            for(const char *a : Cmd.getArguments())
+            {
+                auto it = pathRemap.find(a);
+                newArgs.push_back(it != pathRemap.end() ? it->second : a);
+            }
+            Cmd.replaceArguments(newArgs);
+        }
+    }
+
+    /* emit CCJobs... filtering skipped commands */
     CFAllocatorRef allocator = CFGetAllocator(driver);
     CFMutableArrayRef jobsArray = CFArrayCreateMutable(allocator, 0, &kCFTypeArrayCallBacks);
-    
-    /* checking job properties */
-    for(auto &Job : Jobs)
+
+    for(auto &Job : driver->compilation->getJobs())
     {
         if(!isa<Command>(Job))
         {
             continue;
         }
-        
+
         const Command &Cmd = cast<Command>(Job);
+        if(skippedJobs.contains(&Cmd))
+        {
+            continue;
+        }
+
         CCJobType type = _CCJobTypeGetFromCommand(&Cmd);
-        
+
         const llvm::opt::ArgStringList &cmdArgs = Cmd.getArguments();
         CFMutableArrayRef argsArray = CFArrayCreateMutable(allocator, cmdArgs.size(), &kCFTypeArrayCallBacks);
         for(const char *arg : cmdArgs)
@@ -199,17 +314,17 @@ CFArrayRef CCDriverCreateJobs(CCDriverRef driver)
                 CFRelease(s);
             }
         }
-        
+
         CCJobRef jobRef = CCJobCreate(allocator, type, argsArray);
         CFRelease(argsArray);
-        
+
         if(jobRef)
         {
             CFArrayAppendValue(jobsArray, jobRef);
             CFRelease(jobRef);
         }
     }
-    
+
     return jobsArray;
 }
 
@@ -217,50 +332,8 @@ void CCDriverSetOutputPathCallback(CCDriverRef driver,
                                    CCOutputPathCallback callback,
                                    void *context)
 {
+    driver->callback = callback;
     driver->outputPathCallbackContext = context;
-    
-    if(callback == nullptr)
-    {
-        driver->driver->OutputPathOverride = nullptr;
-        return;
-    }
-    
-    driver->driver->OutputPathOverride = [callback, driver](const clang::driver::JobAction &JA,
-                                                            const char *baseInput,
-                                                            llvm::StringRef boundArch,
-                                                            bool *skip) -> std::string
-    {
-        if(!clang::isa<clang::driver::CompileJobAction>(JA) &&
-           !clang::isa<clang::driver::AssembleJobAction>(JA))
-        {
-            return "";
-        }
-
-        CFStringRef result = callback(baseInput, skip, driver->outputPathCallbackContext);
-        if(!result)
-        {
-            return "";
-        }
-
-        std::string out;
-        const char *fast = CFStringGetCStringPtr(result, kCFStringEncodingUTF8);
-        if(fast)
-        {
-            out.assign(fast);
-        }
-        else
-        {
-            CFIndex len = CFStringGetLength(result);
-            CFIndex max = CFStringGetMaximumSizeForEncoding(len, kCFStringEncodingUTF8) + 1;
-            out.resize(max);
-            CFIndex used = 0;
-            CFStringGetBytes(result, CFRangeMake(0, len), kCFStringEncodingUTF8, 0, false, (UInt8 *)out.data(), max, &used);
-            out.resize(used);
-        }
-
-        CFRelease(result);
-        return out;
-    };
 }
 
 void *CCDriverGetOutputPathCallbackContext(CCDriverRef driver)
@@ -275,16 +348,16 @@ CFURLRef CCDriverCopySysrootURL(CCDriverRef driver)
     {
         return nullptr;
     }
-    
+
     const char *sysroot = cxxstr.c_str();
-    
+
     CFAllocatorRef allocator = CFGetAllocator(driver);
     CFStringRef str = CFStringCreateWithCString(allocator, sysroot, kCFStringEncodingUTF8);
     if(str == nullptr)
     {
         return nullptr;
     }
-    
+
     CFURLRef url = CFURLCreateWithFileSystemPath(allocator, str, kCFURLPOSIXPathStyle, true);
     CFRelease(str);
     return url;
@@ -297,7 +370,7 @@ CCSDKRef CCDriverCopySDK(CCDriverRef driver)
     {
         return nullptr;
     }
-    
+
     CCSDKRef sdk = CCSDKCreateWithFileURL(CFGetAllocator(driver), sdkRoot);
     CFRelease(sdkRoot);
     return sdk;

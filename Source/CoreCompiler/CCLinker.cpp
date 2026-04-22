@@ -46,56 +46,59 @@ Boolean CCLinkerJobExecute(CCJobRef job,
 {
     assert(job != nullptr);
     assert(CCJobGetType(job) == CCJobTypeLinker);
-    
+
     CFArrayRef argsArray = CCJobGetArguments(job);
 
     llvm::SmallVector<std::string, 64> argStorage = CCArrayToStringVector(argsArray);
     llvm::SmallVector<const char *, 64> Args = StringVectorToCStrings(argStorage);
-    
+
     argStorage.push_back("ld64.lld");   /* have to inject */
     Args.insert(Args.begin(), argStorage.back().c_str());
-    
-    std::vector<LDDiagnostic> diagnostics;
+
+    std::string errBuf;
     int retCode;
-    
+
     llvm::CrashRecoveryContext CRC;
     CRC.RunSafely([&]{
         const lld::DriverDef drivers[] = {
             {lld::Darwin, &lld::macho::link},
         };
-        
-        lld::Result result = lld::lldMain(Args, llvm::nulls(), llvm::nulls(), drivers, [&diagnostics](const LDDiagnostic &diag) {
-            diagnostics.push_back(diag);
-        });
+
+        llvm::raw_string_ostream errStream(errBuf);
+
+        lld::Result result = lld::lldMain(Args, errStream, errStream, drivers);
+
+        errStream.flush();
         retCode = result.retCode;
-        
+
         lld::CommonLinkerContext::destroy();
     });
-    
-    if(outDiagnostics != nullptr)
+
+    if(!errBuf.empty())
     {
         /* process error returns */
         CFAllocatorRef allocator = CFGetAllocator(job);
-        CFMutableArrayRef result = CFArrayCreateMutable(allocator, diagnostics.size(), &kCFTypeArrayCallBacks);
+        CFMutableArrayRef result = CFArrayCreateMutable(allocator, 1, &kCFTypeArrayCallBacks);
         if(result == nullptr)
         {
             return retCode == 0;
         }
-        
-        for(auto it = diagnostics.begin(); it != diagnostics.end(); ++it)
+
+        CCDiagnosticLevel level = (retCode == 0) ? CCDiagnosticLevelWarning : CCDiagnosticLevelError;
+        CFStringRef message = CFStringCreateWithCString(allocator, errBuf.c_str(), kCFStringEncodingUTF8);
+        CCDiagnosticRef diagnosticRef = CCDiagnosticCreate(allocator, CCDiagnosticTypeInternal, level, nullptr, message);
+        CFRelease(message);
+        if(diagnosticRef != nullptr)
         {
-            CFStringRef message = CFStringCreateWithCString(allocator, it->message.c_str(), kCFStringEncodingUTF8);
-            CCDiagnosticRef diagnosticRef = CCDiagnosticCreate(allocator, CCDiagnosticTypeInternal, (it->kind == LDDiagnostic::Kind::Error) ? CCDiagnosticLevelError : CCDiagnosticLevelWarning, nullptr, message);
-            CFRelease(message);
-            if(diagnosticRef != nullptr)
-            {
-                CFArrayAppendValue(result, diagnosticRef);
-                CFRelease(diagnosticRef);
-            }
+            CFArrayAppendValue(result, diagnosticRef);
+            CFRelease(diagnosticRef);
         }
-        
-        *outDiagnostics = result;
+
+        if(outDiagnostics != nullptr)
+        {
+            *outDiagnostics = result;
+        }
     }
-    
+
     return retCode == 0;
 }
