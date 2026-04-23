@@ -52,6 +52,9 @@ all: CoreCompiler.framework/CoreCompiler
 llvm-project:
 	$(call log_info,downloading llvm ($(LLVM_TAG)))
 	git clone --depth 1 --branch $(LLVM_TAG) --single-branch https://github.com/swiftlang/llvm-project.git
+	$(call log_info,bypassing lld darwin incompatibility ($(LLVM_TAG)))
+	perl -i -0pe 's|(// Swift LLVM fork downstream change start\n)(.*?)(// Swift LLVM fork downstream change end\n)|$$1/* NYXIAN: apple lies, lld works fine for MachO\n$$2*/\n$$3|s' \
+	llvm-project/lld/MachO/InputFiles.cpp
 
 # Configure
 llvm-project/build/build.ninja:
