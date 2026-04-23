@@ -4,6 +4,7 @@ OS_VER := 14.0
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
 TARGET_TRIPLE := $(APPLE_ARCH)-apple-ios$(OS_VER)
+LLVM_TAG := swift-6.3-RELEASE
 
 # Cmake configurations
 LLVM_CMAKE_FLAGS := -G "Ninja" \
@@ -49,14 +50,14 @@ all: CoreCompiler.framework/CoreCompiler
 
 # Fetch
 llvm-project:
-	$(call log_info,downloading llvm)
-	git clone --depth 1 --branch llvmorg-19.1.7 https://github.com/llvm/llvm-project.git
+	$(call log_info,downloading llvm ($(LLVM_TAG)))
+	git clone --depth 1 --branch $(LLVM_TAG) --single-branch https://github.com/swiftlang/llvm-project.git
 
 # Configure
 llvm-project/build/build.ninja:
-	$(call log_info,preparing llvm)
+	$(call log_info,preparing llvm ($(LLVM_TAG)))
 	mkdir llvm-project/build
-	$(call log_info,configuring llvm)
+	$(call log_info,configuring llvm ($(LLVM_TAG)))
 	cd llvm-project/build; \
 	    cmake $(LLVM_CMAKE_FLAGS) ../llvm
 	$(call log_info,patching configuration of llvm)
@@ -64,7 +65,7 @@ llvm-project/build/build.ninja:
 
 # Build
 LLVM-iphoneos: llvm-project llvm-project/build/build.ninja
-	$(call log_info,building llvm)
+	$(call log_info,building llvm ($(LLVM_TAG)))
 	cmake --build llvm-project/build --target install
 
 # Bundle
@@ -73,7 +74,7 @@ LLVM-iphoneos/llvm.a: LLVM-iphoneos
 	libtool -static -o LLVM-iphoneos/llvm.a LLVM-iphoneos/lib/*.a
 
 LLVM.xcframework: LLVM-iphoneos/llvm.a
-	$(call log_info,creating LLVM framework out of llvm)
+	$(call log_info,creating LLVM framework out of llvm ($(LLVM_TAG)))
 	xcodebuild -create-xcframework \
 		-library "LLVM-iphoneos/llvm.a" \
 	 	-headers "LLVM-iphoneos/include" \
