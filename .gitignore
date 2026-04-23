@@ -18,6 +18,7 @@ xcuserdata/
 
 llvm-project/
 SwiftProject
+build/
 libffi/
 tools/
 LLVM**.xcframework/
