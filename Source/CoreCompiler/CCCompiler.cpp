@@ -50,19 +50,21 @@ CCASTUnitRef CCCompilerJobExecute(CCJobRef job)
 {
     assert(job != nullptr);
     assert(CCJobGetType(job) == CCJobTypeCompiler);
-    
+
     CFArrayRef argsArray = CCJobGetArguments(job);
 
     llvm::SmallVector<std::string, 64> argStorage = CCArrayToStringVector(argsArray);
     llvm::SmallVector<const char *, 64> Args = StringVectorToCStrings(argStorage);
-    
+
     /* setting up clang driver */
-    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(llvm::makeIntrusiveRefCnt<DiagnosticIDs>(), llvm::makeIntrusiveRefCnt<DiagnosticOptions>(), new IgnoringDiagConsumer()));
-    
+    auto DiagOpts = std::make_shared<DiagnosticOptions>();
+    IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(DiagID, *DiagOpts, new IgnoringDiagConsumer(), /*ShouldOwnClient=*/true));
+
     /* creating clang invocation */
     auto CI = std::make_shared<CompilerInvocation>();
     CompilerInvocation::CreateFromArgs(*CI, Args, *Diags);
-    
+
     /*
      * disabling free
      *
@@ -71,13 +73,14 @@ CCASTUnitRef CCCompilerJobExecute(CCJobRef job)
      * cannot run in one hit.
      */
     CI->getFrontendOpts().DisableFree = false;
-    
+
     /* compiling */
     auto Act = std::make_unique<EmitObjAction>();
-    
+
     ASTUnit *ASTUnit = ASTUnit::LoadFromCompilerInvocationAction(
         CI,
         std::make_shared<PCHContainerOperations>(),
+        DiagOpts,
         Diags,
         Act.release(),
         nullptr,
@@ -86,6 +89,6 @@ CCASTUnitRef CCCompilerJobExecute(CCJobRef job)
         false,
         CaptureDiagsKind::All
     );
-    
+
     return  CCASTUnitCreateWithASTUnit(CFGetAllocator(job), std::unique_ptr<clang::ASTUnit>(ASTUnit));
 }

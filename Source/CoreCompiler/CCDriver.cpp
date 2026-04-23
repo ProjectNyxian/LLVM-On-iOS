@@ -117,7 +117,9 @@ CCDriverRef CCDriverCreate(CFAllocatorRef allocator,
     driverRef->outputPathCallbackContext = nullptr;
 
     /* setting up clang driver */
-    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(llvm::makeIntrusiveRefCnt<DiagnosticIDs>(), llvm::makeIntrusiveRefCnt<DiagnosticOptions>(), new IgnoringDiagConsumer()));
+    IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+    DiagnosticOptions DiagOpts;
+    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(new DiagnosticsEngine(DiagID, DiagOpts, new clang::IgnoringDiagConsumer(), /*ShouldOwnClient=*/true));
 
     /* building compilation */
     new (&driverRef->diags) IntrusiveRefCntPtr<DiagnosticsEngine>();
