@@ -1,6 +1,6 @@
 # Quick configurations
 ROOT := $(PWD)
-OS_VER := 16.0
+OS_VER := 14.0
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
 TARGET_TRIPLE := $(APPLE_ARCH)-apple-ios$(OS_VER)
