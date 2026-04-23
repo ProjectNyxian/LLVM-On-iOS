@@ -1,10 +1,29 @@
 # Quick configurations
 ROOT := $(PWD)
-OS_VER := 14.0
+OS_VER := 16.0
 LLVM_ARCH := AArch64
+SWIFT_TAG := swift-6.3-RELEASE
 APPLE_ARCH := arm64
 TARGET_TRIPLE := $(APPLE_ARCH)-apple-ios$(OS_VER)
-LLVM_TAG := swift-6.3-RELEASE
+SWIFT_BRANCH ?= swift-6.3-RELEASE
+SWIFT_SOURCE_DIR ?= swift-source
+SWIFT_REPO_DIR ?= ~/SwiftProject/swift
+LLVM_REPO_DIR ?= ~/SwiftProject/llvm-project
+SWIFT_LLVM_BUILD_DIR ?= ~/SwiftProject/build/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64
+SWIFT_TOOLCHAIN_ZIP := SwiftToolchain.zip
+SWIFT_TOOLCHAIN_ROOT ?= SwiftToolchain-iphoneos
+SWIFT_STATIC_LIBS := $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libswift*.a) \
+					 $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/lib_CompilerRegexParser.a) \
+					 $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libclang*.a) \
+					 $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/liblld*.a) \
+					 $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libLLVM*.a) \
+					 $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/src/libcmark-gfm.a \
+					 $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/extensions/libcmark-gfm-extensions.a
+SWIFT_HOST_COMPILER_DYLIBS := $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler/lib_Compiler*.dylib)
+SWIFT_LINK_PATHS := -L$(SWIFT_TOOLCHAIN_ROOT)/lib \
+					-L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos \
+					-L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos/$(APPLE_ARCH) \
+					-L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler
 
 # Cmake configurations
 LLVM_CMAKE_FLAGS := -G "Ninja" \
@@ -49,59 +68,56 @@ endef
 all: CoreCompiler.framework/CoreCompiler
 
 # Fetch
-llvm-project:
-	$(call log_info,downloading llvm ($(LLVM_TAG)))
-	git clone --depth 1 --branch $(LLVM_TAG) --single-branch https://github.com/swiftlang/llvm-project.git
-	$(call log_info,bypassing lld darwin incompatibility ($(LLVM_TAG)))
-	perl -i -0pe 's|(// Swift LLVM fork downstream change start\n)(.*?)(// Swift LLVM fork downstream change end\n)|$$1/* NYXIAN: apple lies, lld works fine for MachO\n$$2*/\n$$3|s' \
-	llvm-project/lld/MachO/InputFiles.cpp
+swift-source:
+	$(call log_info,fetching swift sources)
+	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh fetch
 
-# Configure
-llvm-project/build/build.ninja:
-	$(call log_info,preparing llvm ($(LLVM_TAG)))
-	mkdir llvm-project/build
-	$(call log_info,configuring llvm ($(LLVM_TAG)))
-	cd llvm-project/build; \
-	    cmake $(LLVM_CMAKE_FLAGS) ../llvm
-	$(call log_info,patching configuration of llvm)
-	sed -i.bak 's/^HAVE_FFI_CALL:INTERNAL=/HAVE_FFI_CALL:INTERNAL=1/g' llvm-project/build/CMakeCache.txt
+SwiftToolchain-iphoneos: swift-source
+	$(call log_info,building iOS-native swift toolchain)
+	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh build
 
-# Build
-LLVM-iphoneos: llvm-project llvm-project/build/build.ninja
-	$(call log_info,building llvm ($(LLVM_TAG)))
-	cmake --build llvm-project/build --target install
+$(SWIFT_TOOLCHAIN_ZIP): SwiftToolchain-iphoneos
+	$(call log_info,packaging iOS-native swift toolchain)
+	Scripts/build-swift-toolchain.sh package
+
+swift-toolchain: $(SWIFT_TOOLCHAIN_ZIP)
+
+install-nyxian-swift-toolchain: $(SWIFT_TOOLCHAIN_ZIP)
+	$(call log_info,installing swift toolchain into Nyxian Shared resources)
+	Scripts/build-swift-toolchain.sh install-nyxian
+
+verify-swift-toolchain:
+	Scripts/build-swift-toolchain.sh verify-host
 
 # Bundle
-LLVM-iphoneos/llvm.a: LLVM-iphoneos
-	$(call log_info,combining LLVM libraries into llvm.a)
-	libtool -static -o LLVM-iphoneos/llvm.a LLVM-iphoneos/lib/*.a
-
-LLVM.xcframework: LLVM-iphoneos/llvm.a
-	$(call log_info,creating LLVM framework out of llvm ($(LLVM_TAG)))
-	xcodebuild -create-xcframework \
-		-library "LLVM-iphoneos/llvm.a" \
-	 	-headers "LLVM-iphoneos/include" \
-	 	-output LLVM.xcframework
-
 CoreCompiler.framework/CoreCompiler: SDK := $(shell xcrun --sdk iphoneos --show-sdk-path)
-CoreCompiler.framework/CoreCompiler: INC := -ISource -ILLVM.xcframework/ios-arm64/Headers
-CoreCompiler.framework/CoreCompiler: LLVM.xcframework
+CoreCompiler.framework/CoreCompiler: INC := -ISource \
+											-ISwiftToolchain-iphoneos/include \
+											-Illvm-project/lld/include \
+											-Illvm-project/clang/include \
+											-Illvm-project/llvm/include \
+											-Ibuild/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64/tools/clang/include
+CoreCompiler.framework/CoreCompiler: swift-toolchain
 	$(call log_info,building CoreCompiler framework)
 	-rm *.o
 	clang -c -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.c
 	clang -c -fobjc-arc -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.m
 	clang++ -c -Wno-elaborated-enum-base -std=c++17 -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.cpp
-	clang++ -fobjc-arc -fno-rtti -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections -Wl,-dead_strip -flto=full -Os -fno-exceptions -Wl,-x -Wl,-S -Wl,-dead_strip_dylibs -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) *.o LLVM.xcframework/ios-arm64/llvm.a  -framework CoreFoundation -o CoreCompiler.framework/CoreCompiler -shared -fPIC -install_name @rpath/CoreCompiler.framework/CoreCompiler
+	clang++ -fobjc-arc -fno-rtti -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections -Wl,-dead_strip -flto=full -Os -fno-exceptions -Wl,-x -Wl,-S -Wl,-dead_strip_dylibs -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) $(SWIFT_LINK_PATHS) *.o $(SWIFT_STATIC_LIBS) $(SWIFT_HOST_COMPILER_DYLIBS) -framework CoreFoundation -lz -lxml2 -lswiftCore -o CoreCompiler.framework/CoreCompiler -shared -fPIC -install_name @rpath/CoreCompiler.framework/CoreCompiler
 	-rm *.o
 	-rm -rf CoreCompiler.framework/Headers
 	mkdir -p CoreCompiler.framework/Headers
 	cp Source/CoreCompiler/*.h CoreCompiler.framework/Headers/
+	cp $(SWIFT_HOST_COMPILER_DYLIBS) CoreCompiler.framework/
+	-install_name_tool -add_rpath @loader_path CoreCompiler.framework/CoreCompiler
+	for dylib in CoreCompiler.framework/lib_Compiler*.dylib; do \
+		install_name_tool -add_rpath @loader_path "$$dylib" || true; \
+	done
 
 # Cleanup
 clean-artifacts:
 	- rm CoreCompiler.framework/CoreCompiler
 	- rm CoreCompiler.framework/Headers/*
-	- rm -rf LLVM.xcframework
 
 clean: clean-artifacts
 	$(call log_info,cleaning up)
@@ -114,4 +130,5 @@ clean: clean-artifacts
 		! -name .github \
 		! -name CoreCompiler.framework \
 		! -name Source \
+		! -name Scripts \
 		-exec rm -rf {} +
