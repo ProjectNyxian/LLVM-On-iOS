@@ -150,6 +150,27 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
         {
             type = CCDiagnosticTypeInternal;
             location = CCSourceLocationZero;
+
+            std::string originalInputFileName = mutableUnit->unit->getOriginalSourceFileName().str();
+            if(originalInputFileName.empty())
+            {
+                continue;
+            }
+
+            const char *originalInputFileNameCStr = originalInputFileName.c_str();
+
+            CFStringRef filePath = CFStringCreateWithCString(allocator, originalInputFileNameCStr, kCFStringEncodingUTF8);
+            if(filePath == nullptr)
+            {
+                continue;
+            }
+
+            fileURL = CFURLCreateWithFileSystemPath(allocator, filePath, kCFURLPOSIXPathStyle, false); /* its never a directory if it's a CCFileRef */
+            CFRelease(filePath);
+            if(fileURL == nullptr)
+            {
+                continue;
+            }
         }
 
         message = CFStringCreateWithCString(allocator, diag.getMessage().str().c_str(), kCFStringEncodingUTF8);
@@ -176,7 +197,11 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
                 break;
         }
 
-        CCFileSourceLocationRef fileSourceLocation = CCFileSourceLocationCreate(allocator, fileURL, location);
+        CCFileSourceLocationRef fileSourceLocation = nullptr;
+        if(fileURL != nil)
+        {
+            fileSourceLocation = CCFileSourceLocationCreate(allocator, fileURL, location);
+        }
         CCDiagnosticRef result = CCDiagnosticCreate(allocator, type, level, fileSourceLocation, message);
         if(fileURL)
         {
@@ -198,8 +223,8 @@ CCMutableASTUnitRef CCASTUnitCreateMutable(CFAllocatorRef allocator)
     return (CCMutableASTUnitRef)_CFRuntimeCreateInstance(allocator, CCASTUnitGetTypeID(), sizeof(opaque_ccastunit) - sizeof(CFRuntimeBase), nullptr);
 }
 
-CC_CXX_EXPORT CCASTUnitRef CCASTUnitCreateWithASTUnit(CFAllocatorRef allocator,
-                                                      std::unique_ptr<clang::ASTUnit> astUnit)
+CCASTUnitRef CCASTUnitCreateWithASTUnit(CFAllocatorRef allocator,
+                                        std::unique_ptr<clang::ASTUnit> astUnit)
 {
     if(astUnit == nullptr)
     {
@@ -399,8 +424,8 @@ void CCASTUnitSetArguments(CCMutableASTUnitRef mutableUnit,
     mutableUnit->BaseArgs.push_back("--end-no-unused-arguments");
 }
 
-CC_EXPORT void CCASTUnitSetFile(CCMutableASTUnitRef mutableUnit,
-                                CCFileRef file)
+void CCASTUnitSetFile(CCMutableASTUnitRef mutableUnit,
+                      CCFileRef file)
 {
     assert(mutableUnit->isMutable);
 

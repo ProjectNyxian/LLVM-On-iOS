@@ -44,7 +44,7 @@ static void CCFileFinalize(CFTypeRef cf)
 {
     CCFileRef fileRef = (CCFileRef)cf;
     CFRelease(fileRef->fileURL);
-    
+
     if(fileRef->unsavedData)
     {
         CFRelease(fileRef->unsavedData);
@@ -106,17 +106,17 @@ CCFileRef CCFileCreate(CFAllocatorRef allocator,
                        CFURLRef fileURL)
 {
     assert(fileURL != nil);
-    
+
     CCFileRef file = (CCFileRef)_CFRuntimeCreateInstance(allocator, CCFileGetTypeID(), sizeof(struct opaque_ccfile) - sizeof(CFRuntimeBase), NULL);
     if(file == nil)
     {
         return nil;
     }
-    
+
     file->isMutable = false;
     file->fileURL = CFRetain(fileURL);
     file->unsavedData = nil;
-    
+
     return file;
 }
 
@@ -128,7 +128,7 @@ CCFileRef CCFileCreateWithFilePath(CFAllocatorRef allocator,
     {
         return nil;
     }
-    
+
     CCFileRef file = CCFileCreate(allocator, fileURL);
     CFRelease(fileURL);
     return file;
@@ -143,7 +143,7 @@ CCFileRef CCFileCreateWithCString(CFAllocatorRef allocator,
     {
         return nil;
     }
-    
+
     CCFileRef file = CCFileCreateWithFilePath(allocator, filePath);
     CFRelease(filePath);
     return file;
@@ -153,17 +153,17 @@ CCMutableFileRef CCFileCreateMutable(CFAllocatorRef allocator,
                                      CFURLRef fileURL)
 {
     assert(fileURL != nil);
-    
+
     CCMutableFileRef mutableFile = (CCMutableFileRef)_CFRuntimeCreateInstance(allocator, CCFileGetTypeID(), sizeof(struct opaque_ccfile) - sizeof(CFRuntimeBase), NULL);
     if(mutableFile == nil)
     {
         return nil;
     }
-    
+
     mutableFile->isMutable = true;
     mutableFile->fileURL = CFRetain(fileURL);
     mutableFile->unsavedData = nil;
-    
+
     return mutableFile;
 }
 
@@ -172,10 +172,10 @@ CCMutableFileRef CCFileCreateMutableWithUnsavedData(CFAllocatorRef allocator,
                                                     CFDataRef data)
 {
     assert(data != nil);
-    
+
     CCMutableFileRef mutableFile = CCFileCreateMutable(allocator, fileURL);
     mutableFile->unsavedData = CFRetain(data);
-    
+
     return mutableFile;
 }
 
@@ -184,16 +184,16 @@ static CCFileRef _CCFileCreateCopy(CFAllocatorRef allocator,
                                    bool isMutable)
 {
     assert(file != nil);
-    
+
     CCFileRef newFile = (CCFileRef)_CFRuntimeCreateInstance(allocator, CCFileGetTypeID(), sizeof(struct opaque_ccfile) - sizeof(CFRuntimeBase), NULL);
     if(newFile == nil)
     {
         return nil;
     }
-    
+
     newFile->isMutable = isMutable;
     newFile->fileURL = CFRetain(file->fileURL);
-    
+
     if(file->unsavedData == nil)
     {
         newFile->unsavedData = nil;
@@ -202,7 +202,7 @@ static CCFileRef _CCFileCreateCopy(CFAllocatorRef allocator,
     {
         newFile->unsavedData = CFRetain(file->unsavedData);
     }
-    
+
     return newFile;
 }
 
@@ -225,10 +225,10 @@ CCFileType CCFileGetType(CCFileRef file)
     {
         return CCFileTypeUnknown;
     }
-    
+
     /* FIXME: get header types later by project indexing */
     CCFileType type = CCFileTypeUnknown;
-    
+
     if(CFEqual(CFSTR("c"), extension))
     {
         type = CCFileTypeC;
@@ -267,7 +267,7 @@ CCFileType CCFileGetType(CCFileRef file)
     {
         type = CCFileTypeObject;
     }
-    
+
     CFRelease(extension);
     return type;
 }
@@ -299,12 +299,12 @@ void CCFileSetFileURL(CCMutableFileRef mutableFile,
                       CFURLRef fileURL)
 {
     assert(fileURL != nil && mutableFile->isMutable);
-    
+
     if(mutableFile->fileURL)
     {
         CFRelease(mutableFile->fileURL);
     }
-    
+
     mutableFile->fileURL = CFRetain(fileURL);
 }
 
@@ -312,12 +312,12 @@ void CCFileSetUnsavedData(CCMutableFileRef mutableFile,
                           CFDataRef data)
 {
     assert(mutableFile->isMutable);
-    
+
     if(mutableFile->unsavedData)
     {
         CFRelease(mutableFile->unsavedData);
     }
-    
+
     if(data == nil)
     {
         /* seems to be now upto date with disk content? */

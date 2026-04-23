@@ -50,12 +50,12 @@ static Boolean CCFileSourceLocationEqual(CFTypeRef cf1,
 {
     CCFileSourceLocationRef fileSourceLocationRef1 = (CCFileSourceLocationRef)cf1;
     CCFileSourceLocationRef fileSourceLocationRef2 = (CCFileSourceLocationRef)cf2;
-    
+
     if(!CFEqual(fileSourceLocationRef1->fileURL, fileSourceLocationRef2->fileURL))
     {
         return false;
     }
-    
+
     return CCSourceLocationEqualToLocation(fileSourceLocationRef1->location, fileSourceLocationRef2->location);
 }
 
@@ -107,16 +107,16 @@ CCFileSourceLocationRef CCFileSourceLocationCreate(CFAllocatorRef allocator,
                                                    CCSourceLocation location)
 {
     assert(fileURL != nil);
-    
+
     CCFileSourceLocationRef fileSourceLocation = (CCFileSourceLocationRef)_CFRuntimeCreateInstance(allocator, CCFileSourceLocationGetTypeID(), sizeof(struct opaque_ccfilesourcelocation) - sizeof(CFRuntimeBase), NULL);
     if(fileSourceLocation == nil)
     {
         return nil;
     }
-    
+
     fileSourceLocation->fileURL = CFRetain(fileURL);
     fileSourceLocation->location = location;
-    
+
     return fileSourceLocation;
 }
 
