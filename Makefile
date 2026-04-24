@@ -5,7 +5,7 @@ LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
 TARGET_TRIPLE := $(APPLE_ARCH)-apple-ios$(OS_VER)
 SWIFT_BRANCH ?= swift-6.3.1-RELEASE
-SWIFT_SOURCE_DIR ?= swift-source
+SWIFT_SOURCE_DIR ?= swift
 SWIFT_TOOLCHAIN_ZIP := SwiftToolchain.zip
 SWIFT_TOOLCHAIN_ROOT ?= SwiftToolchain-iphoneos
 

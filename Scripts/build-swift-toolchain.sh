@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-SWIFT_SOURCE_DIR="${SWIFT_SOURCE_DIR:-${ROOT}/swift-source}"
+SWIFT_SOURCE_DIR="${SWIFT_SOURCE_DIR:-${ROOT}/swift}"
 SWIFT_BRANCH="${SWIFT_BRANCH:-swift-6.3-RELEASE}"
 SWIFT_INSTALL_DIR="${SWIFT_INSTALL_DIR:-${ROOT}/SwiftToolchain-iphoneos}"
 SWIFT_WORKSPACE_DIR="${SWIFT_WORKSPACE_DIR:-$(cd "${SWIFT_SOURCE_DIR}/.." 2>/dev/null && pwd || printf '%s' "${ROOT}")}"
@@ -31,7 +31,7 @@ usage() {
 Usage: $0 <command>
 
 Commands:
-  fetch         Clone/update swift-source using SWIFT_BRANCH.
+  fetch         Clone/update swift using SWIFT_BRANCH.
   build         Build and install an iOS arm64 Swift compiler toolchain.
   package       Zip SwiftToolchain-iphoneos into SwiftToolchain.zip.
   install-nyxian
@@ -70,7 +70,7 @@ fetch_swift() {
     "${SWIFT_SOURCE_DIR}/utils/update-checkout" --clone --tag "${SWIFT_BRANCH}"
 }
 
-# Ensures swift-source/CMakeLists.txt maps SWIFT_HOST_TRIPLE to
+# Ensures swift/CMakeLists.txt maps SWIFT_HOST_TRIPLE to
 # CMAKE_Swift_COMPILER_TARGET before enable_language(Swift) runs. Without
 # this, swiftc's compiler-probe at the iphoneos-arm64 stage is invoked
 # without -target and defaults to the macOS host triple, mismatching the
