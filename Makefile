@@ -37,7 +37,7 @@ all: CoreCompiler.framework/CoreCompiler
 swift-source:
 	$(call log_info,fetching swift sources)
 	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh fetch
-	$(call log_info,bypassing lld darwin incompatibility))
+	$(call log_info,bypassing lld darwin incompatibility)
 	perl -i -0pe 's|(// Swift LLVM fork downstream change start\n)(.*?)(// Swift LLVM fork downstream change end\n)|$$1/* NYXIAN: apple lies, lld works fine for MachO\n$$2*/\n$$3|s' \
 	llvm-project/lld/MachO/InputFiles.cpp
 
