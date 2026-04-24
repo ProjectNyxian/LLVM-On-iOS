@@ -78,6 +78,8 @@ CoreCompiler.framework/CoreCompiler: swift-toolchain
 	-rm -rf CoreCompiler.framework/Headers
 	mkdir -p CoreCompiler.framework/Headers
 	cp Source/CoreCompiler/*.h CoreCompiler.framework/Headers/
+	mkdir CoreCompilerSupportLibs
+	cp $(SWIFT_HOST_COMPILER_DYLIBS) CoreCompilerSupportLibs/
 
 # Cleanup
 clean-artifacts:
