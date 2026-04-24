@@ -128,6 +128,9 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
         const StoredDiagnostic &diag = mutableUnit->unit->stored_diag_begin()[i];
         clang::PresumedLoc loc = mutableUnit->unit->getSourceManager().getPresumedLoc(diag.getLocation());
 
+        std::string fileNameStr;
+        const char *fileName = nullptr;
+
         if(loc.isValid())
         {
             if(mutableUnit->file != nullptr)
@@ -139,11 +142,7 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
                 }
             }
 
-            const char *fileName = loc.getFilename();
-            CFStringRef fileStr = CFStringCreateWithCString(allocator, fileName, kCFStringEncodingUTF8);
-            fileURL = CFURLCreateWithFileSystemPath(allocator, fileStr, kCFURLPOSIXPathStyle, false);
-            CFRelease(fileStr);
-
+            fileName = loc.getFilename();
             location = CCSourceLocationMake(loc.getLine(), loc.getColumn());
         }
         else
@@ -151,30 +150,35 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
             type = CCDiagnosticTypeInternal;
             location = CCSourceLocationZero;
 
-            std::string originalInputFileName = mutableUnit->unit->getOriginalSourceFileName().str();
-            if(originalInputFileName.empty())
+            fileNameStr = mutableUnit->unit->getOriginalSourceFileName().str();
+            if(!fileNameStr.empty())
             {
-                continue;
+                fileName = fileNameStr.c_str();
             }
+        }
 
-            const char *originalInputFileNameCStr = originalInputFileName.c_str();
+        if(fileName == nullptr)
+        {
+            continue;
+        }
 
-            CFStringRef filePath = CFStringCreateWithCString(allocator, originalInputFileNameCStr, kCFStringEncodingUTF8);
-            if(filePath == nullptr)
-            {
-                continue;
-            }
+        CFStringRef fileStr = CFStringCreateWithCString(allocator, fileName, kCFStringEncodingUTF8);
+        if(fileStr == nullptr)
+        {
+            continue;
+        }
 
-            fileURL = CFURLCreateWithFileSystemPath(allocator, filePath, kCFURLPOSIXPathStyle, false); /* its never a directory if it's a CCFileRef */
-            CFRelease(filePath);
-            if(fileURL == nullptr)
-            {
-                continue;
-            }
+        fileURL = CFURLCreateWithFileSystemPath(allocator, fileStr, kCFURLPOSIXPathStyle, false);
+        CFRelease(fileStr);
+        if(fileURL == nullptr)
+        {
+            /* in-case fileURL is nullptr then it would crash when creating CCFileSourceLocation */
+            continue;
         }
 
         message = CFStringCreateWithCString(allocator, diag.getMessage().str().c_str(), kCFStringEncodingUTF8);
 
+        /* resolves message severity  mapping */
         switch(diag.getLevel())
         {
             case clang::DiagnosticsEngine::Note:
@@ -197,11 +201,7 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
                 break;
         }
 
-        CCFileSourceLocationRef fileSourceLocation = nullptr;
-        if(fileURL != nil)
-        {
-            fileSourceLocation = CCFileSourceLocationCreate(allocator, fileURL, location);
-        }
+        CCFileSourceLocationRef fileSourceLocation = CCFileSourceLocationCreate(allocator, fileURL, location);
         CCDiagnosticRef result = CCDiagnosticCreate(allocator, type, level, fileSourceLocation, message);
         if(fileURL)
         {

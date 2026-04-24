@@ -25,40 +25,6 @@ SWIFT_LINK_PATHS := -L$(SWIFT_TOOLCHAIN_ROOT)/lib \
 					-L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos/$(APPLE_ARCH) \
 					-L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler
 
-# Cmake configurations
-LLVM_CMAKE_FLAGS := -G "Ninja" \
-					-DCMAKE_BUILD_TYPE=Release \
-					-DLLVM_ENABLE_PROJECTS="clang;lld" \
-					-DLLVM_TARGETS_TO_BUILD="$(LLVM_ARCH)" \
-					-DLLVM_TARGET_ARCH="$(LLVM_ARCH)" \
-					-DLLVM_DEFAULT_TARGET_TRIPLE="$(TARGET_TRIPLE)" \
-					-DBUILD_SHARED_LIBS=OFF \
-					-DLLVM_ENABLE_ZLIB=OFF \
-					-DLLVM_ENABLE_ZSTD=OFF \
-					-DLLVM_ENABLE_THREADS=ON \
-					-DLLVM_ENABLE_UNWIND_TABLES=OFF \
-					-DLLVM_ENABLE_EH=OFF \
-					-DLLVM_ENABLE_RTTI=ON \
-					-DLLVM_ENABLE_TERMINFO=OFF \
-					-DCMAKE_INSTALL_PREFIX="$(ROOT)/LLVM-iphoneos" \
-					-DCMAKE_TOOLCHAIN_FILE=../llvm/cmake/platforms/iOS.cmake \
-					-DLLVM_ENABLE_LIBXML2=OFF \
-					-DCLANG_ENABLE_STATIC_ANALYZER=OFF \
-					-DCLANG_ENABLE_ARCMT=OFF \
-					-DCLANG_TABLEGEN_TARGETS="$(LLVM_ARCH)" \
-					-DCMAKE_C_FLAGS="-target $(TARGET_TRIPLE)" \
-					-DCMAKE_CXX_FLAGS="-target $(TARGET_TRIPLE)" \
-					-DCMAKE_OSX_ARCHITECTURES="$(APPLE_ARCH)" \
-					-DLLVM_FORCE_VC_REPOSITORY=https://github.com/ProjectNyxian/LLVM-On-iOS \
-					-DLLVM_BUILD_UTILS=OFF \
-					-DLLVM_INCLUDE_UTILS=OFF \
-					-DLLVM_BUILD_BENCHMARKS=OFF \
-					-DLLVM_INCLUDE_BENCHMARKS=OFF \
-					-DLLVM_BUILD_TOOLS=OFF \
-					-DCLANG_BUILD_TOOLS=OFF \
-					-DLLVM_INCLUDE_TESTS=OFF \
-					-DLLVM_BUILD_TESTS=OFF
-
 # Helper function
 define log_info
 	@echo "\033[32m\033[1m[*] \033[0m\033[32m$(1)\033[0m"
@@ -71,6 +37,9 @@ all: CoreCompiler.framework/CoreCompiler
 swift-source:
 	$(call log_info,fetching swift sources)
 	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh fetch
+	$(call log_info,bypassing lld darwin incompatibility))
+	perl -i -0pe 's|(// Swift LLVM fork downstream change start\n)(.*?)(// Swift LLVM fork downstream change end\n)|$$1/* NYXIAN: apple lies, lld works fine for MachO\n$$2*/\n$$3|s' \
+	llvm-project/lld/MachO/InputFiles.cpp
 
 SwiftToolchain-iphoneos: swift-source
 	$(call log_info,building iOS-native swift toolchain)
