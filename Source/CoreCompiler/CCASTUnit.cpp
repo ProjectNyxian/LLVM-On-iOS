@@ -105,9 +105,9 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
     {
         return false;
     }
-    
+
     CFAllocatorRef allocator = CFGetAllocator(mutableUnit);
-    
+
     /* now parse the diagnostics */
     CFIndex count = mutableUnit->unit->stored_diag_size();
     CFMutableArrayRef diagnostics = CFArrayCreateMutable(allocator, count, &kCFTypeArrayCallBacks);
@@ -115,7 +115,7 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
     {
         return false;
     }
-    
+
     /* now indice for indice */
     for(CFIndex i = 0; i < count; i++)
     {
@@ -124,10 +124,13 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
         CFURLRef fileURL = nullptr;
         CCSourceLocation location;
         CFStringRef message;
-        
+
         const StoredDiagnostic &diag = mutableUnit->unit->stored_diag_begin()[i];
         clang::PresumedLoc loc = mutableUnit->unit->getSourceManager().getPresumedLoc(diag.getLocation());
-        
+
+        std::string fileNameStr;
+        const char *fileName = nullptr;
+
         if(loc.isValid())
         {
             if(mutableUnit->file != nullptr)
@@ -138,22 +141,44 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
                     type = (strncmp(filePath, loc.getFilename(), PATH_MAX) == 0) ? CCDiagnosticTypeTargetFile : CCDiagnosticTypeFile;
                 }
             }
-            
-            const char *fileName = loc.getFilename();
-            CFStringRef fileStr = CFStringCreateWithCString(allocator, fileName, kCFStringEncodingUTF8);
-            fileURL = CFURLCreateWithFileSystemPath(allocator, fileStr, kCFURLPOSIXPathStyle, false);
-            CFRelease(fileStr);
-            
+
+            fileName = loc.getFilename();
             location = CCSourceLocationMake(loc.getLine(), loc.getColumn());
         }
         else
         {
             type = CCDiagnosticTypeInternal;
             location = CCSourceLocationZero;
+
+            fileNameStr = mutableUnit->unit->getOriginalSourceFileName().str();
+            if(!fileNameStr.empty())
+            {
+                fileName = fileNameStr.c_str();
+            }
         }
-        
+
+        if(fileName == nullptr)
+        {
+            continue;
+        }
+
+        CFStringRef fileStr = CFStringCreateWithCString(allocator, fileName, kCFStringEncodingUTF8);
+        if(fileStr == nullptr)
+        {
+            continue;
+        }
+
+        fileURL = CFURLCreateWithFileSystemPath(allocator, fileStr, kCFURLPOSIXPathStyle, false);
+        CFRelease(fileStr);
+        if(fileURL == nullptr)
+        {
+            /* in-case fileURL is nullptr then it would crash when creating CCFileSourceLocation */
+            continue;
+        }
+
         message = CFStringCreateWithCString(allocator, diag.getMessage().str().c_str(), kCFStringEncodingUTF8);
-        
+
+        /* resolves message severity  mapping */
         switch(diag.getLevel())
         {
             case clang::DiagnosticsEngine::Note:
@@ -175,7 +200,7 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
                 level = CCDiagnosticLevelUnknown;
                 break;
         }
-        
+
         CCFileSourceLocationRef fileSourceLocation = CCFileSourceLocationCreate(allocator, fileURL, location);
         CCDiagnosticRef result = CCDiagnosticCreate(allocator, type, level, fileSourceLocation, message);
         if(fileURL)
@@ -183,13 +208,13 @@ Boolean _CCASTUnitRefillDiagnosticArray(CCMutableASTUnitRef mutableUnit)
             CFRelease(fileURL);
         }
         CFRelease(message);
-        
+
         CFArrayAppendValue(diagnostics, result);
         CFRelease(result); /* array owns now a reference */
     }
-    
+
     mutableUnit->diagnostics = diagnostics;
-    
+
     return true;
 }
 
@@ -198,29 +223,29 @@ CCMutableASTUnitRef CCASTUnitCreateMutable(CFAllocatorRef allocator)
     return (CCMutableASTUnitRef)_CFRuntimeCreateInstance(allocator, CCASTUnitGetTypeID(), sizeof(opaque_ccastunit) - sizeof(CFRuntimeBase), nullptr);
 }
 
-CC_CXX_EXPORT CCASTUnitRef CCASTUnitCreateWithASTUnit(CFAllocatorRef allocator,
-                                                      std::unique_ptr<clang::ASTUnit> astUnit)
+CCASTUnitRef CCASTUnitCreateWithASTUnit(CFAllocatorRef allocator,
+                                        std::unique_ptr<clang::ASTUnit> astUnit)
 {
     if(astUnit == nullptr)
     {
         /* cannot create empty unit */
         return nullptr;
     }
-    
+
     CCMutableASTUnitRef unit = (CCMutableASTUnitRef)_CFRuntimeCreateInstance(allocator, CCASTUnitGetTypeID(), sizeof(opaque_ccastunit) - sizeof(CFRuntimeBase), nullptr);
     unit->unit = std::move(astUnit);
     _CCASTUnitRefillDiagnosticArray(unit);
-    
+
     std::string originalInputFileName = unit->unit->getOriginalSourceFileName().str();
     if(!originalInputFileName.empty())
     {
         const char *originalInputFileNameCStr = originalInputFileName.c_str();
         unit->file = CCFileCreateWithCString(allocator, originalInputFileNameCStr, kCFStringEncodingUTF8);
     }
-    
+
     /* marking immutable, since not a live AST object */
     unit->isMutable = false;
-    
+
     return (CCASTUnitRef)unit;
 }
 
@@ -257,7 +282,7 @@ static const char *_CCASTUnitLangFlagForFile(CCFileRef file)
 Boolean CCASTUnitReparse(CCMutableASTUnitRef mutableUnit)
 {
     assert(mutableUnit->isMutable);
-    
+
     /*
      * releasing diagnostics array, because
      * the data it contains is now invalid
@@ -266,31 +291,31 @@ Boolean CCASTUnitReparse(CCMutableASTUnitRef mutableUnit)
     if(mutableUnit->diagnostics != nullptr)
     {
         CFRelease(mutableUnit->diagnostics);
-        
+
         /* so the data is officially not valid anymore */
         mutableUnit->diagnostics = nullptr;
     }
-    
+
     if(mutableUnit->BaseArgs.size() == 0)
     {
         /* arguments havent been set */
         return false;
     }
-    
+
     /* setting up argument */
     SmallVector<const char *, 64> args;
     for(const std::string &arg : mutableUnit->BaseArgs)
     {
         args.push_back(arg.c_str());
     }
-    
+
     char filePath[PATH_MAX];
     CFURLGetFileSystemRepresentation(CCFileGetFileURL(mutableUnit->file), true, (UInt8*)filePath, sizeof(filePath));
-    
+
     args.push_back(filePath);
-    
+
     auto diags = CompilerInstance::createDiagnostics(new clang::DiagnosticOptions());
-    
+
     SmallVector<ASTUnit::RemappedFile, 4> remaps;
     CFDataRef data = CCFileGetUnsavedData(mutableUnit->file);
     if(data != nullptr)
@@ -301,7 +326,7 @@ Boolean CCASTUnitReparse(CCMutableASTUnitRef mutableUnit)
         remaps.push_back(remap);
     }
     ArrayRef<ASTUnit::RemappedFile> remapRef = remaps;
-    
+
     if(mutableUnit->unit == nullptr)
 reparse_from_nothing:
     {
@@ -341,12 +366,12 @@ reparse_from_nothing:
             goto reparse_from_nothing;
         }
     }
-    
+
     if((mutableUnit->unit != nullptr) && !_CCASTUnitRefillDiagnosticArray(mutableUnit))
     {
         return false;
     }
-    
+
     return true;
 }
 
@@ -354,21 +379,21 @@ void CCASTUnitSetArguments(CCMutableASTUnitRef mutableUnit,
                            CFArrayRef arguments)
 {
     assert(mutableUnit->isMutable);
-    
+
     if(mutableUnit->unit != nullptr)
     {
         mutableUnit->unit.reset();
     }
     mutableUnit->BaseArgs.clear();
     mutableUnit->BaseArgs.push_back("clang");
-    
+
     const char *lang = _CCASTUnitLangFlagForFile(mutableUnit->file);
     if(lang)
     {
         mutableUnit->BaseArgs.push_back("-x");
         mutableUnit->BaseArgs.push_back(lang);
     }
-    
+
     /*
      * silencing those weird linker warnings
      * on live typechecking, which libclang
@@ -400,7 +425,7 @@ CC_EXPORT void CCASTUnitSetFile(CCMutableASTUnitRef mutableUnit,
                                 CCFileRef file)
 {
     assert(mutableUnit->isMutable);
-    
+
     if(mutableUnit->file != nullptr)
     {
         if(!CFEqual(CCFileGetFileURL(mutableUnit->file), CCFileGetFileURL(file)))
@@ -447,9 +472,9 @@ public:
     SourceLocation targetLoc;
     SourceManager *SM;
     Decl *found = nullptr;
-    
+
     bool shouldVisitTemplateInstantiations() const { return true; }
-    
+
     bool VisitDeclRefExpr(DeclRefExpr *E)
     {
         if(SM->getSpellingLoc(E->getLocation()) == SM->getSpellingLoc(targetLoc))
@@ -459,7 +484,7 @@ public:
         }
         return true;
     }
-    
+
     bool VisitMemberExpr(MemberExpr *E)
     {
         if(SM->getSpellingLoc(E->getMemberLoc()) == SM->getSpellingLoc(targetLoc))
@@ -469,7 +494,7 @@ public:
         }
         return true;
     }
-    
+
     bool VisitObjCMessageExpr(ObjCMessageExpr *E)
     {
         if(SM->getSpellingLoc(E->getSelectorStartLoc()) == SM->getSpellingLoc(targetLoc))
@@ -479,7 +504,7 @@ public:
         }
         return true;
     }
-    
+
     bool VisitObjCPropertyRefExpr(ObjCPropertyRefExpr *E)
     {
         if(SM->getSpellingLoc(E->getLocation()) == SM->getSpellingLoc(targetLoc))
@@ -492,7 +517,7 @@ public:
         }
         return true;
     }
-    
+
     bool VisitObjCInterfaceDecl(ObjCInterfaceDecl *D)
     {
         if(D->getSuperClass() &&
@@ -505,7 +530,7 @@ public:
             }
             return false;
         }
-        
+
         auto locIt = D->protocol_loc_begin();
         for(auto *proto : D->protocols())
         {
@@ -520,10 +545,10 @@ public:
             }
             ++locIt;
         }
-        
+
         return true;
     }
-    
+
     bool VisitObjCCategoryDecl(ObjCCategoryDecl *D)
     {
         if(D->getClassInterface() &&
@@ -534,7 +559,7 @@ public:
         }
         return true;
     }
-    
+
     bool VisitObjCImplementationDecl(ObjCImplementationDecl *D)
     {
         if(SM->getSpellingLoc(D->getLocation()) == SM->getSpellingLoc(targetLoc))
@@ -548,7 +573,7 @@ public:
         }
         return true;
     }
-    
+
     bool VisitObjCInterfaceTypeLoc(ObjCInterfaceTypeLoc TL)
     {
         if(SM->getSpellingLoc(TL.getNameLoc()) == SM->getSpellingLoc(targetLoc))
@@ -566,7 +591,7 @@ public:
         }
         return true;
     }
-    
+
     bool VisitNamedDecl(NamedDecl *D)
     {
         if(SM->getSpellingLoc(D->getLocation()) == SM->getSpellingLoc(targetLoc))
@@ -585,47 +610,47 @@ CCFileSourceLocationRef CCASTUnitCopyDefinitionAtLocation(CCASTUnitRef unit,
     {
         return nullptr;
     }
-    
+
     char filePath[PATH_MAX];
     if(!CFURLGetFileSystemRepresentation(CCFileGetFileURL(unit->file), true, (UInt8*)filePath, sizeof(filePath)))
     {
         return nullptr;
     }
-    
+
     SourceManager &SM = unit->unit->getSourceManager();
     FileManager &FM = unit->unit->getFileManager();
-    
+
     auto fileEntry = FM.getFile(filePath);
     if(!fileEntry)
     {
         return nullptr;
     }
-    
+
     FileID fileID = SM.translateFile(*fileEntry);
     if(fileID.isInvalid())
     {
         return nullptr;
     }
-    
+
     SourceLocation loc = SM.translateLineCol(fileID, (unsigned int)location.line, (unsigned int)location.column);
     if(loc.isInvalid())
     {
         return nullptr;
     }
-    
+
     DeclAtLocationVisitor visitor;
     visitor.targetLoc = loc;
     visitor.SM = &SM;
     visitor.TraverseAST(unit->unit->getASTContext());
-    
+
     Decl *cursor = visitor.found;
     if(!cursor)
     {
         return nullptr;
     }
-    
+
     Decl *defDecl = nullptr;
-    
+
     /* getting definition (hopefully) */
     if(auto *ID = dyn_cast<ObjCInterfaceDecl>(cursor))
     {
@@ -643,31 +668,31 @@ CCFileSourceLocationRef CCASTUnitCopyDefinitionAtLocation(CCASTUnitRef unit,
     {
         defDecl = FD->getDefinition();
     }
-    
+
     /* last resort */
     if(defDecl == nullptr)
     {
         defDecl = cursor->getCanonicalDecl();
     }
-    
+
     if(!defDecl)
     {
         return nullptr;
     }
-    
+
     SourceLocation defLoc = defDecl->getLocation();
     PresumedLoc presumed = SM.getPresumedLoc(defLoc);
-    
+
     if(presumed.isInvalid())
     {
         return nullptr;
     }
-    
+
     CFAllocatorRef allocator = CFGetAllocator(unit);
     CFStringRef fileStr = CFStringCreateWithCString(allocator, presumed.getFilename(), kCFStringEncodingUTF8);
     CFURLRef fileURL = CFURLCreateWithFileSystemPath(allocator, fileStr, kCFURLPOSIXPathStyle, false);
     CFRelease(fileStr);
-    
+
     CCSourceLocation resultLoc = CCSourceLocationMake(presumed.getLine(), presumed.getColumn());
     CCFileSourceLocationRef result = CCFileSourceLocationCreate(allocator, fileURL, resultLoc);
     CFRelease(fileURL);
