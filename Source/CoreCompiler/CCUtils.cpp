@@ -75,6 +75,11 @@ static void CCLLVMErrorHandler(void *userData, const char *reason, bool genCrash
     abort();
 }
 
+void CCInstallLLVMFatalErrorHandler(void)
+{
+    llvm::install_fatal_error_handler(CCLLVMErrorHandler);
+}
+
 __attribute__((constructor))
 void llvm_init(void)
 {

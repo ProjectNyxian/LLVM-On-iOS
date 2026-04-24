@@ -1,8 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2024 light-tech
- * Copyright (c) 2026 cr4zyengineer
+ * Copyright (c) 2026 Kyle-Ye
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +22,11 @@
  * SOFTWARE.
  */
 
-#ifndef CCUTILS_H
-#define CCUTILS_H
+#ifndef CCSWIFTCOMPILER_H
+#define CCSWIFTCOMPILER_H
 
 #include <CoreCompiler/CCBase.h>
-#if __cplusplus
-#include <llvm/Support/Threading.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/CrashRecoveryContext.h>
-#endif /* __cplusplus */
 
-CC_EXPORT CFIndex CCGetMaximumPerformanceCores(void);
-CC_EXPORT void CCInstallLLVMFatalErrorHandler(void);
+CC_EXPORT Boolean CCSwiftCompilerExecute(CFArrayRef arguments, CFStringRef *outOutput);
 
-#if __cplusplus
-CC_CXX_EXPORT llvm::SmallVector<std::string, 64> CCArrayToStringVector(CFArrayRef array);
-CC_CXX_EXPORT llvm::SmallVector<const char *, 64> StringVectorToCStrings(const llvm::SmallVector<std::string, 64> &vec);
-#endif /* __cplusplus */
-
-#endif /* CCUTILS_H */
+#endif /* CCSWIFTCOMPILER_H */

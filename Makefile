@@ -65,7 +65,8 @@ CoreCompiler.framework/CoreCompiler: INC := -ISource \
 											-Illvm-project/lld/include \
 											-Illvm-project/clang/include \
 											-Illvm-project/llvm/include \
-											-Ibuild/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64/tools/clang/include
+											-Ibuild/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64/tools/clang/include \
+											-Iswift/include
 CoreCompiler.framework/CoreCompiler: swift-toolchain
 	$(call log_info,building CoreCompiler framework)
 	-rm *.o
@@ -77,11 +78,6 @@ CoreCompiler.framework/CoreCompiler: swift-toolchain
 	-rm -rf CoreCompiler.framework/Headers
 	mkdir -p CoreCompiler.framework/Headers
 	cp Source/CoreCompiler/*.h CoreCompiler.framework/Headers/
-	cp $(SWIFT_HOST_COMPILER_DYLIBS) CoreCompiler.framework/
-	-install_name_tool -add_rpath @loader_path CoreCompiler.framework/CoreCompiler
-	for dylib in CoreCompiler.framework/lib_Compiler*.dylib; do \
-		install_name_tool -add_rpath @loader_path "$$dylib" || true; \
-	done
 
 # Cleanup
 clean-artifacts:

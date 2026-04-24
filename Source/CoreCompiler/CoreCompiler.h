@@ -40,15 +40,18 @@
 #include <CoreCompiler/CCLinker.h>
 #include <CoreCompiler/CCUtils.h>
 
-#include <CoreCompiler/CCKFile.h>
-#include <CoreCompiler/CCKFileSourceLocation.h>
-#include <CoreCompiler/CCKDiagnostic.h>
-#include <CoreCompiler/CCKJob.h>
-#include <CoreCompiler/CCKDriver.h>
-#include <CoreCompiler/CCKSDK.h>
-#include <CoreCompiler/CCKASTUnit.h>
-#include <CoreCompiler/CCKDependencyScanner.h>
-#include <CoreCompiler/CCKCompiler.h>
-#include <CoreCompiler/CCKLinker.h>
+#ifdef __OBJC__
+#import <CoreCompiler/CCKFile.h>
+#import <CoreCompiler/CCKFileSourceLocation.h>
+#import <CoreCompiler/CCKDiagnostic.h>
+#import <CoreCompiler/CCKJob.h>
+#import <CoreCompiler/CCKDriver.h>
+#import <CoreCompiler/CCKSDK.h>
+#import <CoreCompiler/CCKASTUnit.h>
+#import <CoreCompiler/CCKDependencyScanner.h>
+#import <CoreCompiler/CCKCompiler.h>
+#import <CoreCompiler/CCKLinker.h>
+#import <CoreCompiler/CCKSwiftCompiler.h>
+#endif /* __OBJC__ */
 
 #endif /* CORECOMPILER_H */
