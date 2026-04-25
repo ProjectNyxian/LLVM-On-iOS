@@ -66,14 +66,16 @@ CoreCompiler.framework/CoreCompiler: INC := -ISource \
 											-Illvm-project/clang/include \
 											-Illvm-project/llvm/include \
 											-Ibuild/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64/tools/clang/include \
-											-Iswift/include
+											-Iswift/include \
+											-Iswift/stdlib/public/SwiftShims
 CoreCompiler.framework/CoreCompiler: swift-toolchain
 	$(call log_info,building CoreCompiler framework)
+	-rm -rf CoreCompilerSupportLibs
 	-rm *.o
 	clang -c -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.c
 	clang -c -fobjc-arc -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.m
 	clang++ -c -Wno-elaborated-enum-base -std=c++17 -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.cpp
-	clang++ -fobjc-arc -fno-rtti -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections -Wl,-dead_strip -flto=full -Os -fno-exceptions -Wl,-x -Wl,-S -Wl,-dead_strip_dylibs -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) $(SWIFT_LINK_PATHS) *.o $(SWIFT_STATIC_LIBS) $(SWIFT_HOST_COMPILER_DYLIBS) -framework CoreFoundation -lz -lxml2 -lswiftCore -o CoreCompiler.framework/CoreCompiler -shared -fPIC -install_name @rpath/CoreCompiler.framework/CoreCompiler
+	clang++ -fobjc-arc -fno-rtti -fno-exceptions -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections -Wl,-dead_strip -flto=full -Os -fno-exceptions -Wl,-x -Wl,-S -Wl,-dead_strip_dylibs -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) $(SWIFT_LINK_PATHS) *.o $(SWIFT_STATIC_LIBS) $(SWIFT_HOST_COMPILER_DYLIBS) -framework CoreFoundation -lz -lxml2 -lswiftCore -o CoreCompiler.framework/CoreCompiler -shared -fPIC -install_name @rpath/CoreCompiler.framework/CoreCompiler
 	-rm *.o
 	-rm -rf CoreCompiler.framework/Headers
 	mkdir -p CoreCompiler.framework/Headers
@@ -83,8 +85,10 @@ CoreCompiler.framework/CoreCompiler: swift-toolchain
 
 # Cleanup
 clean-artifacts:
-	- rm CoreCompiler.framework/CoreCompiler
-	- rm CoreCompiler.framework/Headers/*
+	-rm *.o
+	-rm -rf CoreCompilerSupportLibs
+	-rm CoreCompiler.framework/CoreCompiler
+	-rm CoreCompiler.framework/Headers/*
 
 clean: clean-artifacts
 	$(call log_info,cleaning up)

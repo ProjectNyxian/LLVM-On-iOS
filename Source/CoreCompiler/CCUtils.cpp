@@ -28,6 +28,7 @@
 #include <llvm/Support/Threading.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/CrashRecoveryContext.h>
+#include <swift/Basic/InitializeSwiftModules.h>
 
 CFIndex CCGetMaximumPerformanceCores(void)
 {

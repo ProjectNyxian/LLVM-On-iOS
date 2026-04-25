@@ -23,16 +23,67 @@
  */
 
 #include <CoreCompiler/CCSwiftCompiler.h>
+#include <CoreCompiler/CCDiagnostic.h>
+#include <CoreCompiler/CCFile.h>
 #include <CoreCompiler/CCUtils.h>
-#include <swift/Basic/InitializeSwiftModules.h>
 #include <swift/FrontendTool/FrontendTool.h>
+#include <swift/Frontend/Frontend.h>
+#include <swift/Frontend/PrintingDiagnosticConsumer.h>
+#include <swift/Basic/InitializeSwiftModules.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/Path.h>
 #include <llvm/Support/ErrorHandling.h>
 #include <fcntl.h>
 #include <mutex>
 #include <unistd.h>
 
+struct CapturedDiag {
+    swift::DiagID         id;
+    swift::DiagnosticKind kind;
+    std::string           message;     // already formatted
+    std::string           file;
+    unsigned              line = 0, column = 0;
+    // add ranges / fixits / category / educationalNotes if you need them
+};
+
+class CapturingConsumer : public swift::DiagnosticConsumer {
+public:
+    std::vector<CapturedDiag> diags;
+
+    void handleDiagnostic(swift::SourceManager &SM,
+                          const swift::DiagnosticInfo &Info) override {
+        CapturedDiag d;
+        d.id   = Info.ID;
+        d.kind = Info.Kind;
+
+        // Render FormatString + FormatArgs into a real string.
+        llvm::SmallString<256> buf;
+        {
+            llvm::raw_svector_ostream os(buf);
+            swift::DiagnosticEngine::formatDiagnosticText(
+                os, Info.FormatString, Info.FormatArgs);
+        }
+        d.message = std::string(buf);
+
+        if (Info.Loc.isValid()) {
+            auto lc = SM.getPresumedLineAndColumnForLoc(Info.Loc);
+            d.line   = lc.first;
+            d.column = lc.second;
+            d.file   = SM.getDisplayNameForLoc(Info.Loc).str();
+        }
+        diags.push_back(std::move(d));
+    }
+};
+
+class MyObserver : public swift::FrontendObserver {
+public:
+    CapturingConsumer consumer;
+    void configuredCompiler(swift::CompilerInstance &CI) override {
+        CI.addDiagnosticConsumer(&consumer);
+    }
+};
+
 static std::once_flag SwiftModulesInitOnce;
-static std::mutex SwiftFrontendMutex;
 
 static CFStringRef CCStringCreateWithFileDescriptor(CFAllocatorRef allocator, int fd)
 {
@@ -67,10 +118,9 @@ static CFStringRef CCStringCreateWithFileDescriptor(CFAllocatorRef allocator, in
     return string;
 }
 
-Boolean CCSwiftCompilerExecute(CFArrayRef arguments, CFStringRef *outOutput)
+Boolean CCSwiftCompilerExecute(CFArrayRef arguments, CFArrayRef *outDiagnostic)
 {
     assert(arguments != nullptr);
-    std::lock_guard<std::mutex> lock(SwiftFrontendMutex);
 
     CFIndex count = CFArrayGetCount(arguments);
     llvm::SmallVector<std::string, 64> argStorage;
@@ -92,35 +142,85 @@ Boolean CCSwiftCompilerExecute(CFArrayRef arguments, CFStringRef *outOutput)
         initializeSwiftModules();
     });
 
-    char templatePath[] = "/tmp/nyxian-swift-frontend.XXXXXX";
-    int diagnosticsFD = mkstemp(templatePath);
-    int savedStderr = dup(STDERR_FILENO);
-
-    if(diagnosticsFD >= 0 && savedStderr >= 0)
-    {
-        dup2(diagnosticsFD, STDERR_FILENO);
-    }
-
+    MyObserver obs;
     llvm::remove_fatal_error_handler();
-    int status = swift::performFrontend(args, "swift-frontend", nullptr);
+    int status = swift::performFrontend(args, "swift-frontend", nullptr, &obs);
     CCInstallLLVMFatalErrorHandler();
 
-    if(savedStderr >= 0)
+    if(outDiagnostic == nullptr)
     {
-        dup2(savedStderr, STDERR_FILENO);
-        close(savedStderr);
+        goto out_status;
     }
 
-    if(outOutput != nullptr)
+    *outDiagnostic = CFArrayCreateMutable(kCFAllocatorSystemDefault, obs.consumer.diags.size(), &kCFTypeArrayCallBacks);
+    if(*outDiagnostic == nullptr)
     {
-        *outOutput = diagnosticsFD >= 0 ? CCStringCreateWithFileDescriptor(kCFAllocatorSystemDefault, diagnosticsFD) : CFSTR("");
+        goto out_status;
     }
 
-    if(diagnosticsFD >= 0)
+    for(auto &d : obs.consumer.diags)
     {
-        close(diagnosticsFD);
-        unlink(templatePath);
+        CCDiagnosticLevel level = CCDiagnosticLevelUnknown;
+
+        switch(d.kind)
+        {
+            case swift::DiagnosticKind::Error:
+                level = CCDiagnosticLevelError;
+                break;
+            case swift::DiagnosticKind::Warning:
+                level = CCDiagnosticLevelWarning;
+                break;
+            case swift::DiagnosticKind::Remark:
+                level = CCDiagnosticLevelRemark;
+                break;
+            case swift::DiagnosticKind::Note:
+                level = CCDiagnosticLevelNote;
+                break;
+            default:
+                break;
+        }
+
+        if(level == CCDiagnosticLevelUnknown)
+        {
+            continue;
+        }
+
+        CFStringRef messageStr = CFStringCreateWithCString(kCFAllocatorSystemDefault, d.message.c_str(), kCFStringEncodingUTF8);
+        if(messageStr == nullptr)
+        {
+            continue;
+        }
+
+        CCFileRef file = CCFileCreateWithCString(kCFAllocatorSystemDefault, d.file.c_str(), kCFStringEncodingUTF8);
+        if(file == nullptr)
+        {
+            CFRelease(messageStr);
+            continue;
+        }
+
+        CFURLRef fileURL = CCFileGetFileURL(file);
+        CCFileSourceLocationRef fileSourceLocation = CCFileSourceLocationCreate(kCFAllocatorSystemDefault, fileURL, CCSourceLocationMake(d.line, d.column));
+        CFRelease(file);
+
+        if(fileSourceLocation == nullptr)
+        {
+            CFRelease(messageStr);
+            continue;
+        }
+
+        /* TODO: support internal diagnostic's aswell */
+        CCDiagnosticRef diagnostic = CCDiagnosticCreate(kCFAllocatorSystemDefault, CCDiagnosticTypeFile, level, fileSourceLocation, messageStr);
+        CFRelease(messageStr);
+        CFRelease(fileSourceLocation);
+        if(diagnostic == nullptr)
+        {
+            continue;
+        }
+
+        CFArrayAppendValue((CFMutableArrayRef)*outDiagnostic, diagnostic);
+        CFRelease(diagnostic);
     }
 
+out_status:
     return status == 0;
 }

@@ -26,10 +26,11 @@
 #define CCKSWIFTCOMPILER_H
 
 #import <Foundation/Foundation.h>
+#import <CoreCompiler/CCKDiagnostic.h>
 
 @interface CCKSwiftCompiler : NSObject
 
-+ (BOOL)executeWithArguments:(NSArray<NSString *> *)arguments output:(NSString **)output;
++ (BOOL)executeWithArguments:(NSArray<NSString *> *)arguments outDiagnostic:(NSArray<CCKDiagnostic*>**)outDiagnostic;
 
 @end
 

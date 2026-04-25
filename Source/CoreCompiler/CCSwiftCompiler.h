@@ -27,6 +27,6 @@
 
 #include <CoreCompiler/CCBase.h>
 
-CC_EXPORT Boolean CCSwiftCompilerExecute(CFArrayRef arguments, CFStringRef *outOutput);
+CC_EXPORT Boolean CCSwiftCompilerExecute(CFArrayRef arguments, CFArrayRef *outDiagnostic);
 
 #endif /* CCSWIFTCOMPILER_H */

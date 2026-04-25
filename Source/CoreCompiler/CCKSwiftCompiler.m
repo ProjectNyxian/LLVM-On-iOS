@@ -27,18 +27,19 @@
 
 @implementation CCKSwiftCompiler
 
-+ (BOOL)executeWithArguments:(NSArray<NSString *> *)arguments output:(NSString **)output
++ (BOOL)executeWithArguments:(NSArray<NSString *> *)arguments
+               outDiagnostic:(NSArray<CCKDiagnostic*>**)outDiagnostic;
 {
-    CFStringRef compilerOutput = nil;
-    BOOL success = CCSwiftCompilerExecute((__bridge CFArrayRef)arguments, &compilerOutput);
+    CFArrayRef array = nil;
+    BOOL success = CCSwiftCompilerExecute((__bridge CFArrayRef)arguments, &array);
 
-    if(output != nil)
+    if(array != nil && outDiagnostic != nil)
     {
-        *output = (__bridge_transfer NSString *)compilerOutput;
+        *outDiagnostic = (__bridge_transfer NSArray<CCKDiagnostic*>*)array;
     }
-    else if(compilerOutput != nil)
+    else
     {
-        CFRelease(compilerOutput);
+        CFRelease(array);
     }
 
     return success;
