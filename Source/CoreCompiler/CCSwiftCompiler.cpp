@@ -1,7 +1,9 @@
 /*
  * MIT License
  *
+ * Copyright (c) 2024 light-tech
  * Copyright (c) 2026 Kyle-Ye
+ * Copyright (c) 2026 cr4zyengineer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,12 +40,12 @@
 #include <unistd.h>
 
 struct CapturedDiag {
-    swift::DiagID         id;
+    swift::DiagID id;
     swift::DiagnosticKind kind;
-    std::string           message;     // already formatted
-    std::string           file;
-    unsigned              line = 0, column = 0;
-    // add ranges / fixits / category / educationalNotes if you need them
+    std::string message;
+    std::string file;
+    unsigned line = 0, column = 0;
+    /* add ranges / fixits / category / educationalNotes if you need them */
 };
 
 class CapturingConsumer : public swift::DiagnosticConsumer {
@@ -51,25 +53,26 @@ public:
     std::vector<CapturedDiag> diags;
 
     void handleDiagnostic(swift::SourceManager &SM,
-                          const swift::DiagnosticInfo &Info) override {
+                          const swift::DiagnosticInfo &Info) override
+    {
         CapturedDiag d;
-        d.id   = Info.ID;
+        d.id = Info.ID;
         d.kind = Info.Kind;
 
-        // Render FormatString + FormatArgs into a real string.
+        /* render FormatString + FormatArgs into a real string. */
         llvm::SmallString<256> buf;
         {
             llvm::raw_svector_ostream os(buf);
-            swift::DiagnosticEngine::formatDiagnosticText(
-                os, Info.FormatString, Info.FormatArgs);
+            swift::DiagnosticEngine::formatDiagnosticText(os, Info.FormatString, Info.FormatArgs);
         }
         d.message = std::string(buf);
 
-        if (Info.Loc.isValid()) {
+        if(Info.Loc.isValid())
+        {
             auto lc = SM.getPresumedLineAndColumnForLoc(Info.Loc);
-            d.line   = lc.first;
+            d.line = lc.first;
             d.column = lc.second;
-            d.file   = SM.getDisplayNameForLoc(Info.Loc).str();
+            d.file = SM.getDisplayNameForLoc(Info.Loc).str();
         }
         diags.push_back(std::move(d));
     }
@@ -78,7 +81,8 @@ public:
 class MyObserver : public swift::FrontendObserver {
 public:
     CapturingConsumer consumer;
-    void configuredCompiler(swift::CompilerInstance &CI) override {
+    void configuredCompiler(swift::CompilerInstance &CI) override
+    {
         CI.addDiagnosticConsumer(&consumer);
     }
 };
@@ -118,7 +122,8 @@ static CFStringRef CCStringCreateWithFileDescriptor(CFAllocatorRef allocator, in
     return string;
 }
 
-Boolean CCSwiftCompilerExecute(CFArrayRef arguments, CFArrayRef *outDiagnostic)
+Boolean CCSwiftCompilerExecute(CFArrayRef arguments,
+                               CFArrayRef *outDiagnostic)
 {
     assert(arguments != nullptr);
 
