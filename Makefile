@@ -1,15 +1,11 @@
 # Quick configurations
 ROOT := $(PWD)
-OS_VER := 16.0
+OS_VER ?= 16.0
 LLVM_ARCH := AArch64
-SWIFT_TAG := swift-6.3-RELEASE
 APPLE_ARCH := arm64
 TARGET_TRIPLE := $(APPLE_ARCH)-apple-ios$(OS_VER)
-SWIFT_BRANCH ?= swift-6.3-RELEASE
+SWIFT_BRANCH ?= swift-6.3.1-RELEASE
 SWIFT_SOURCE_DIR ?= swift-source
-SWIFT_REPO_DIR ?= ~/SwiftProject/swift
-LLVM_REPO_DIR ?= ~/SwiftProject/llvm-project
-SWIFT_LLVM_BUILD_DIR ?= ~/SwiftProject/build/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64
 SWIFT_TOOLCHAIN_ZIP := SwiftToolchain.zip
 SWIFT_TOOLCHAIN_ROOT ?= SwiftToolchain-iphoneos
 
@@ -21,16 +17,16 @@ endef
 # Main Target
 all: CoreCompiler.framework/CoreCompiler
 
-# Fetch
+# Fetch & Build Swift and LLVM for iOS
 swift-source:
-	$(call log_info,fetching swift sources)
+	$(call log_info,fetching swift sources ($(SWIFT_BRANCH)))
 	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh fetch
 	$(call log_info,bypassing lld darwin incompatibility)
 	perl -i -0pe 's|(// Swift LLVM fork downstream change start\n)(.*?)(// Swift LLVM fork downstream change end\n)|$$1/* NYXIAN: apple lies, lld works fine for MachO\n$$2*/\n$$3|s' \
 	llvm-project/lld/MachO/InputFiles.cpp
 
 SwiftToolchain-iphoneos: swift-source
-	$(call log_info,building iOS-native swift toolchain)
+	$(call log_info,building iOS-native swift toolchain ($(SWIFT_BRANCH)))
 	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh build
 
 $(SWIFT_TOOLCHAIN_ZIP): SwiftToolchain-iphoneos
@@ -40,34 +36,28 @@ $(SWIFT_TOOLCHAIN_ZIP): SwiftToolchain-iphoneos
 swift-toolchain: $(SWIFT_TOOLCHAIN_ZIP)
 
 install-nyxian-swift-toolchain: $(SWIFT_TOOLCHAIN_ZIP)
-	$(call log_info,installing swift toolchain into Nyxian Shared resources)
+	$(call log_info,installing swift toolchain ($(SWIFT_BRANCH)) into Nyxian Shared resources)
 	Scripts/build-swift-toolchain.sh install-nyxian
 
 verify-swift-toolchain:
 	Scripts/build-swift-toolchain.sh verify-host
 
 # Bundle
-CoreCompiler.framework/CoreCompiler: SDK := $(shell xcrun --sdk iphoneos --show-sdk-path)
-CoreCompiler.framework/CoreCompiler: INC := -ISource \
-											-ISwiftToolchain-iphoneos/include \
-											-Illvm-project/lld/include \
-											-Illvm-project/clang/include \
-											-Illvm-project/llvm/include \
-											-Ibuild/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64/tools/clang/include \
-											-Iswift/include \
-											-Iswift/stdlib/public/SwiftShims
-CoreCompiler.framework/CoreCompiler: SWIFT_STATIC_LIBS := $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libswift*.a) \
-														  $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/lib_CompilerRegexParser.a) \
-					 									  $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libclang*.a) \
-														  $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/liblld*.a) \
-					 									  $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libLLVM*.a) \
-														  $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/src/libcmark-gfm.a \
-														  $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/extensions/libcmark-gfm-extensions.a
-CoreCompiler.framework/CoreCompiler: SWIFT_HOST_COMPILER_DYLIBS := $(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler/lib_Compiler*.dylib
-CoreCompiler.framework/CoreCompiler: SWIFT_LINK_PATHS := 	-L$(SWIFT_TOOLCHAIN_ROOT)/lib \
-															-L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos \
-															-L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos/$(APPLE_ARCH) \
-															-L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler
+SDK = $(shell xcrun --sdk iphoneos --show-sdk-path)
+SWIFT_STATIC_LIBS = $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libswift*.a) \
+                    $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/lib_CompilerRegexParser.a) \
+                    $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libclang*.a) \
+                    $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/liblld*.a) \
+                    $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libLLVM*.a) \
+                    $(wildcard $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/src/libcmark-gfm.a) \
+                    $(wildcard $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/extensions/libcmark-gfm-extensions.a)
+SWIFT_HOST_COMPILER_DYLIBS = $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler/lib_Compiler*.dylib)
+SWIFT_LINK_PATHS = -L$(SWIFT_TOOLCHAIN_ROOT)/lib \
+                   -L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos \
+                   -L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos/$(APPLE_ARCH) \
+                   -L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler
+INC = -ISource -ISwiftToolchain-iphoneos/include -Illvm-project/lld/include -Illvm-project/clang/include -Illvm-project/llvm/include -Ibuild/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64/tools/clang/include -Iswift/include -Iswift/stdlib/public/SwiftShims
+
 CoreCompiler.framework/CoreCompiler: swift-toolchain
 	$(call log_info,building CoreCompiler framework)
 	-rm -rf CoreCompilerSupportLibs
