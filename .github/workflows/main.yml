@@ -24,14 +24,8 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           make all
-      - name: create llvm framework archive
-        run: tar -cJf LLVM.xcframework.tar.xz LLVM.xcframework
       - name: create CoreCompiler framework archive
         run: tar -cJf CoreCompiler.framework.tar.xz CoreCompiler.framework
-      - uses: actions/upload-artifact@v4
-        with:
-          name: LLVM.xcframework
-          path: LLVM.xcframework.tar.xz
       - uses: actions/upload-artifact@v4
         with:
           name: CoreCompiler.framework
