@@ -56,13 +56,13 @@ CoreCompiler.framework/CoreCompiler: INC := -ISource \
 											-Ibuild/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64/tools/clang/include \
 											-Iswift/include \
 											-Iswift/stdlib/public/SwiftShims
-CoreCompiler.framework/CoreCompiler: SWIFT_STATIC_LIBS := 	$(SWIFT_TOOLCHAIN_ROOT)/lib/libswift*.a \
-															$(SWIFT_TOOLCHAIN_ROOT)/lib/lib_CompilerRegexParser.a \
-															$(SWIFT_TOOLCHAIN_ROOT)/lib/libclang*.a \
-															$(SWIFT_TOOLCHAIN_ROOT)/lib/liblld*.a \
-															$(SWIFT_TOOLCHAIN_ROOT)/lib/libLLVM*.a \
-					 										$(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/src/libcmark-gfm.a \
-					 										$(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/extensions/libcmark-gfm-extensions.a
+CoreCompiler.framework/CoreCompiler: SWIFT_STATIC_LIBS := $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libswift*.a) \
+														  $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/lib_CompilerRegexParser.a) \
+					 									  $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libclang*.a) \
+														  $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/liblld*.a) \
+					 									  $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libLLVM*.a) \
+														  $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/src/libcmark-gfm.a \
+														  $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/extensions/libcmark-gfm-extensions.a
 CoreCompiler.framework/CoreCompiler: SWIFT_HOST_COMPILER_DYLIBS := $(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler/lib_Compiler*.dylib
 CoreCompiler.framework/CoreCompiler: SWIFT_LINK_PATHS := 	-L$(SWIFT_TOOLCHAIN_ROOT)/lib \
 															-L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos \
