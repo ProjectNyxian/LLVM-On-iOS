@@ -1,5 +1,8 @@
 name: Build LLVM XCFrameworks for Release
-on: [push]
+on:
+  push:
+  workflow_dispatch:
+
 jobs:
   prepare-build-tools:
     runs-on: macos-latest
