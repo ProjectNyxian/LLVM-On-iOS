@@ -25,10 +25,8 @@ swift:
 	perl -i -0pe 's|(// Swift LLVM fork downstream change start\n)(.*?)(// Swift LLVM fork downstream change end\n)|$$1/* NYXIAN: apple lies, lld works fine for MachO\n$$2*/\n$$3|s' \
 	llvm-project/lld/MachO/InputFiles.cpp
 
-build/LLVMClangSwift_iphoneos/llvm-macosx-x86_64:
-	mkdir -p build/LLVMClangSwift_iphoneos; cd build/LLVMClangSwift_iphoneos; ln -sfn llvm-macosx-arm64 llvm-macosx-x86_64
 
-.SwiftToolchain-iphoneos: swift build/LLVMClangSwift_iphoneos/llvm-macosx-x86_64
+.SwiftToolchain-iphoneos: swift
 	$(call log_info,building iOS-native swift toolchain ($(SWIFT_BRANCH)))
 	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh build
 	touch .SwiftToolchain-iphoneos
