@@ -165,8 +165,7 @@ copy_ios_install() {
     local build_dir="${SWIFT_BUILD_ROOT}/${SWIFT_BUILD_SUBDIR}"
     local install_prefix="Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr"
     local candidates=(
-        "${build_dir}/intermediate-install/iphoneos-arm64/${install_prefix}"
-        "${build_dir}/toolchain-macosx-arm64/${install_prefix}"
+        "${build_dir}/intermediate-install/iphoneos-arm64/${install_prefix}"    
     )
     local swift_build="${build_dir}/swift-iphoneos-arm64"
     local llvm_build="${build_dir}/llvm-iphoneos-arm64"
